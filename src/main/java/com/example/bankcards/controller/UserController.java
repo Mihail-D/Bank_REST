@@ -3,6 +3,9 @@ package com.example.bankcards.controller;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.service.UserService;
+import com.example.bankcards.dto.UserDto;
+import com.example.bankcards.dto.UserMapper;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -27,7 +30,8 @@ public class UserController {
     }
 
     @PostMapping
-    public User createUser(@RequestBody User user) {
+    public User createUser(@RequestBody @Valid UserDto userDto) {
+        User user = UserMapper.INSTANCE.toEntity(userDto);
         return userService.save(user);
     }
 
