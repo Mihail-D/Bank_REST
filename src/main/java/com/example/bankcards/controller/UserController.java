@@ -1,10 +1,10 @@
 package com.example.bankcards.controller;
 
 import com.example.bankcards.entity.User;
+import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.service.UserService;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,10 +21,9 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public Optional<User> getUserById(@PathVariable Long id) {
-        return userService.findAll().stream()
-                .filter(user -> user.getId().equals(id))
-                .findFirst();
+    public User getUserById(@PathVariable Long id) {
+        return userService.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
     }
 
     @PostMapping
