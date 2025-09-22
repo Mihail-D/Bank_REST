@@ -161,3 +161,17 @@ databaseChangeLog:
             referencedTableName: cards
             referencedColumnNames: id
             constraintName: fk_transactions_to_card
+
+  - changeSet:
+      id: add-user-role-column
+      author: yourname
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: role
+                  type: varchar(50)
+                  defaultValue: USER
+                  constraints:
+                    nullable: false

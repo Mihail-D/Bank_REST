@@ -10,6 +10,10 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+  jpa:
+    hibernate:
+      ddl-auto: create
+
 server:
   port: 8081
 
