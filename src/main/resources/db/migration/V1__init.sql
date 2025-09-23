@@ -1,10 +1,8 @@
--- roles
 CREATE TABLE roles (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE
 );
 
--- users
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -12,7 +10,6 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE
 );
 
--- user_roles (связь многие-ко-многим)
 CREATE TABLE user_roles (
     user_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
@@ -21,7 +18,6 @@ CREATE TABLE user_roles (
     CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
 
--- cards
 CREATE TABLE cards (
     id BIGSERIAL PRIMARY KEY,
     encrypted_card_number VARCHAR(255) NOT NULL,
@@ -33,7 +29,6 @@ CREATE TABLE cards (
     CONSTRAINT fk_cards_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- transactions
 CREATE TABLE transactions (
     id BIGSERIAL PRIMARY KEY,
     from_card_id BIGINT NOT NULL,
