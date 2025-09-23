@@ -15,8 +15,8 @@ public class Card {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 16)
-    private String number;
+    @Column(nullable = false, unique = true, length = 255)
+    private String encryptedNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -34,4 +34,5 @@ public class Card {
 
     @OneToMany(mappedBy = "destinationCard", cascade = CascadeType.ALL)
     private List<Transfer> incomingTransfers;
+
 }

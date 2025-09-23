@@ -15,6 +15,11 @@ spring:
     console:
       enabled: true
 
+# Добавляем ключ шифрования для тестов
+card:
+  encryption:
+    key: "1234567890123456"  # 16-байтовый ключ для AES
+
 logging:
   level:
     com.example.bankcards: DEBUG

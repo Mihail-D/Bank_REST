@@ -10,10 +10,12 @@ public class CardNumberGenerator {
     private static final int CARD_NUMBER_LENGTH = 16;
     private final SecureRandom random = new SecureRandom();
     private final CardRepository cardRepository;
+    private final CardEncryptionService cardEncryptionService;
 
     @Autowired
-    public CardNumberGenerator(CardRepository cardRepository) {
+    public CardNumberGenerator(CardRepository cardRepository, CardEncryptionService cardEncryptionService) {
         this.cardRepository = cardRepository;
+        this.cardEncryptionService = cardEncryptionService;
     }
 
     /**
@@ -39,9 +41,11 @@ public class CardNumberGenerator {
      */
     public String generateUniqueCardNumber() {
         String cardNumber;
+        String encrypted;
         do {
             cardNumber = generateCardNumber();
-        } while (!isValidLuhn(cardNumber) || cardRepository.existsByNumber(cardNumber));
+            encrypted = cardEncryptionService.encrypt(cardNumber);
+        } while (!isValidLuhn(cardNumber) || cardRepository.findByEncryptedNumber(encrypted).isPresent());
         return cardNumber;
     }
 

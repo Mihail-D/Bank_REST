@@ -25,3 +25,7 @@ server:
     #swagger-ui:
     #enabled: true
   #path: /swagger-ui.html
+
+card:
+  encryption:
+    key: "1234567890abcdef"

@@ -76,7 +76,7 @@ class LiquibaseMigrationTest {
 
         assertThat(columns).hasSize(5);
         assertThat(columns.stream().anyMatch(col -> "id".equals(col.get("column_name")))).isTrue();
-        assertThat(columns.stream().anyMatch(col -> "number".equals(col.get("column_name")))).isTrue();
+        assertThat(columns.stream().anyMatch(col -> "encrypted_number".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "status".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "expiration_date".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "user_id".equals(col.get("column_name")))).isTrue();
