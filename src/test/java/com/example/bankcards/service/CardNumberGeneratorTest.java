@@ -35,5 +35,21 @@ class CardNumberGeneratorTest {
         assertEquals(16, number.length());
         assertTrue(number.matches("\\d{16}"));
     }
-}
 
+    @Test
+    void generatedCardNumberShouldPassLuhnCheck() {
+        Mockito.when(cardRepository.existsByNumber(anyString())).thenReturn(false);
+        String number = generator.generateUniqueCardNumber();
+        assertTrue(CardNumberGenerator.isValidLuhn(number), "Номер карты должен проходить проверку Луна");
+    }
+
+    @Test
+    void luhnAlgorithmShouldValidateKnownNumbers() {
+        // Валидные номера
+        assertTrue(CardNumberGenerator.isValidLuhn("4539578763621486"));
+        assertTrue(CardNumberGenerator.isValidLuhn("6011000990139424"));
+        // Невалидные номера
+        assertFalse(CardNumberGenerator.isValidLuhn("1234567890123456"));
+        assertFalse(CardNumberGenerator.isValidLuhn("1111111111111111"));
+    }
+}
