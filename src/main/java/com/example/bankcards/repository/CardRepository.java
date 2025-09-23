@@ -15,6 +15,8 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     Optional<Card> findByNumber(String number);
 
+    boolean existsByNumber(String number);
+
     List<Card> findByUser(User user);
 
     List<Card> findByStatus(CardStatus status);
