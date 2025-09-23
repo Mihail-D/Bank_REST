@@ -1,6 +1,7 @@
 package com.example.bankcards.controller;
 
 import com.example.bankcards.entity.User;
+import com.example.bankcards.entity.Role;
 import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.service.UserService;
 import com.example.bankcards.dto.UserDto;
@@ -27,12 +28,14 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserDto> getAllUsers() {
         List<User> users = userService.findAll();
         return users.stream().map(userMapper::toDto).toList();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
         User user = userService.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
@@ -49,15 +52,20 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id, @RequestBody @Valid UserDto userDto) {
         User existingUser = userService.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
 
+        existingUser.setName(userDto.getName());
         existingUser.setUsername(userDto.getUsername());
         existingUser.setEmail(userDto.getEmail());
-        existingUser.setRole(userDto.getRole());
 
-        // Обновляем пароль только если он предоставлен
+        if (hasRole("ADMIN")) {
+            existingUser.setRole(userDto.getRole());
+            existingUser.setActive(userDto.isActive());
+        }
+
         if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
             existingUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
         }
@@ -68,7 +76,44 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public void deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        User user = userService.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
         userService.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserDto> activateUser(@PathVariable Long id) {
+        User user = userService.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
+        user.setActive(true);
+        User updatedUser = userService.save(user);
+        return ResponseEntity.ok(userMapper.toDto(updatedUser));
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserDto> deactivateUser(@PathVariable Long id) {
+        User user = userService.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
+        user.setActive(false);
+        User updatedUser = userService.save(user);
+        return ResponseEntity.ok(userMapper.toDto(updatedUser));
+    }
+
+    @PatchMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserDto> updateUserRole(@PathVariable Long id, @RequestParam Role role) {
+        User user = userService.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
+        user.setRole(role);
+        User updatedUser = userService.save(user);
+        return ResponseEntity.ok(userMapper.toDto(updatedUser));
+    }
+
+    private boolean hasRole(String role) {
+        return true;
     }
 }

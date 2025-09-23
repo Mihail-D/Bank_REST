@@ -2,9 +2,11 @@ package com.example.bankcards.integration;
 
 import com.example.bankcards.entity.*;
 import com.example.bankcards.repository.*;
+import com.example.bankcards.service.CardEncryptionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @ActiveProfiles("test")
 @Transactional
+@Import(CardEncryptionService.class)  // Импортируем CardEncryptionService в тестовый контекст
 class EntityIntegrationTest {
 
     @Autowired
@@ -33,25 +36,30 @@ class EntityIntegrationTest {
     @Autowired
     private HistoryRepository historyRepository;
 
+    @Autowired
+    private CardEncryptionService cardEncryptionService;
+
     @Test
     void shouldCreateAndPersistUserWithCards() {
-        User user = new User("John Doe", "johndoe", "john@example.com", "password123", "USER");
+        User user = new User("John Doe", "johndoe", "john@example.com", "password123", Role.USER);
+        // Инициализация коллекции карт
+        user.setCards(new java.util.ArrayList<>());
 
         Card card1 = new Card();
-        card1.setNumber("1234567890123456");
+        card1.setEncryptedNumber(cardEncryptionService.encrypt("1234567890123456"));
         card1.setStatus(CardStatus.ACTIVE);
         card1.setExpirationDate(LocalDate.now().plusYears(3));
         card1.setUser(user);
+        user.getCards().add(card1);
 
         Card card2 = new Card();
-        card2.setNumber("6543210987654321");
+        card2.setEncryptedNumber(cardEncryptionService.encrypt("6543210987654321"));
         card2.setStatus(CardStatus.BLOCKED);
         card2.setExpirationDate(LocalDate.now().plusYears(2));
         card2.setUser(user);
+        user.getCards().add(card2);
 
         User savedUser = userRepository.save(user);
-        cardRepository.save(card1);
-        cardRepository.save(card2);
 
         assertThat(savedUser.getId()).isNotNull();
         assertThat(savedUser.getName()).isEqualTo("John Doe");
@@ -60,24 +68,24 @@ class EntityIntegrationTest {
 
         List<Card> userCards = cardRepository.findByUser(savedUser);
         assertThat(userCards).hasSize(2);
-        assertThat(userCards).extracting(Card::getNumber)
+        assertThat(userCards).extracting(card -> cardEncryptionService.decrypt(card.getEncryptedNumber()))
                 .containsExactlyInAnyOrder("1234567890123456", "6543210987654321");
     }
 
     @Test
     void shouldCreateTransferBetweenCards() {
-        User sender = userRepository.save(new User("Sender", "sender", "sender@example.com", "pass", "USER"));
-        User receiver = userRepository.save(new User("Receiver", "receiver", "receiver@example.com", "pass", "USER"));
+        User sender = userRepository.save(new User("Sender", "sender", "sender@example.com", "pass", Role.USER));
+        User receiver = userRepository.save(new User("Receiver", "receiver", "receiver@example.com", "pass", Role.USER));
 
         Card sourceCard = new Card();
-        sourceCard.setNumber("1111222233334444");
+        sourceCard.setEncryptedNumber(cardEncryptionService.encrypt("1111222233334444"));
         sourceCard.setStatus(CardStatus.ACTIVE);
         sourceCard.setExpirationDate(LocalDate.now().plusYears(3));
         sourceCard.setUser(sender);
         sourceCard = cardRepository.save(sourceCard);
 
         Card destinationCard = new Card();
-        destinationCard.setNumber("5555666677778888");
+        destinationCard.setEncryptedNumber(cardEncryptionService.encrypt("5555666677778888"));
         destinationCard.setStatus(CardStatus.ACTIVE);
         destinationCard.setExpirationDate(LocalDate.now().plusYears(2));
         destinationCard.setUser(receiver);
@@ -94,8 +102,8 @@ class EntityIntegrationTest {
 
         assertThat(savedTransfer.getId()).isNotNull();
         assertThat(savedTransfer.getAmount()).isEqualByComparingTo(new BigDecimal("100.50"));
-        assertThat(savedTransfer.getSourceCard().getNumber()).isEqualTo("1111222233334444");
-        assertThat(savedTransfer.getDestinationCard().getNumber()).isEqualTo("5555666677778888");
+        assertThat(savedTransfer.getSourceCard().getEncryptedNumber()).isEqualTo(cardEncryptionService.encrypt("1111222233334444"));
+        assertThat(savedTransfer.getDestinationCard().getEncryptedNumber()).isEqualTo(cardEncryptionService.encrypt("5555666677778888"));
         assertThat(savedTransfer.getStatus()).isEqualTo("COMPLETED");
 
         List<Transfer> sourceTransfers = transferRepository.findBySourceCard(sourceCard);
@@ -109,14 +117,14 @@ class EntityIntegrationTest {
 
     @Test
     void shouldCreateHistoryEntryForUserCardAndTransfer() {
-        User user = userRepository.save(new User("Test User", "testuser", "test@example.com", "pass", "USER"));
+        User user = userRepository.save(new User("Test User", "testuser", "test@example.com", "pass", Role.USER));
 
         Card card = new Card();
-        card.setNumber("9999888877776666");
+        card.setEncryptedNumber(cardEncryptionService.encrypt("9999888877776666"));
         card.setStatus(CardStatus.ACTIVE);
         card.setExpirationDate(LocalDate.now().plusYears(3));
         card.setUser(user);
-        card = cardRepository.save(card);
+        cardRepository.save(card);
 
         Transfer transfer = new Transfer();
         transfer.setAmount(new BigDecimal("50.00"));
@@ -140,7 +148,7 @@ class EntityIntegrationTest {
         assertThat(savedHistory.getEventType()).isEqualTo("TRANSFER_CREATED");
         assertThat(savedHistory.getDescription()).isEqualTo("Transfer of 50.00 was created");
         assertThat(savedHistory.getUser().getUsername()).isEqualTo("testuser");
-        assertThat(savedHistory.getCard().getNumber()).isEqualTo("9999888877776666");
+        assertThat(cardEncryptionService.decrypt(savedHistory.getCard().getEncryptedNumber())).isEqualTo("9999888877776666");
         assertThat(savedHistory.getTransfer().getAmount()).isEqualByComparingTo(new BigDecimal("50.00"));
 
         List<History> userHistory = historyRepository.findByUser(user);
@@ -154,22 +162,22 @@ class EntityIntegrationTest {
 
     @Test
     void shouldTestCardStatusEnum() {
-        User user = userRepository.save(new User("Enum Test", "enumtest", "enum@example.com", "pass", "USER"));
+        User user = userRepository.save(new User("Enum Test", "enumtest", "enum@example.com", "pass", Role.USER));
 
         Card activeCard = new Card();
-        activeCard.setNumber("1111000011110000");
+        activeCard.setEncryptedNumber(cardEncryptionService.encrypt("1111000011110000"));
         activeCard.setStatus(CardStatus.ACTIVE);
         activeCard.setExpirationDate(LocalDate.now().plusYears(3));
         activeCard.setUser(user);
 
         Card blockedCard = new Card();
-        blockedCard.setNumber("2222000022220000");
+        blockedCard.setEncryptedNumber(cardEncryptionService.encrypt("2222000022220000"));
         blockedCard.setStatus(CardStatus.BLOCKED);
         blockedCard.setExpirationDate(LocalDate.now().plusYears(3));
         blockedCard.setUser(user);
 
         Card expiredCard = new Card();
-        expiredCard.setNumber("3333000033330000");
+        expiredCard.setEncryptedNumber(cardEncryptionService.encrypt("3333000033330000"));
         expiredCard.setStatus(CardStatus.EXPIRED);
         expiredCard.setExpirationDate(LocalDate.now().minusDays(1));
         expiredCard.setUser(user);
@@ -193,10 +201,10 @@ class EntityIntegrationTest {
 
     @Test
     void shouldTestRepositoryQueries() {
-        User user = userRepository.save(new User("Query Test", "querytest", "query@example.com", "pass", "USER"));
+        User user = userRepository.save(new User("Query Test", "querytest", "query@example.com", "pass", Role.USER));
 
         Card card = new Card();
-        card.setNumber("4444555566667777");
+        card.setEncryptedNumber(cardEncryptionService.encrypt("4444555566667777"));
         card.setStatus(CardStatus.ACTIVE);
         card.setExpirationDate(LocalDate.now().plusYears(3));
         card.setUser(user);
@@ -204,7 +212,7 @@ class EntityIntegrationTest {
 
         Optional<User> foundByUsername = userRepository.findByUsername("querytest");
         Optional<User> foundByEmail = userRepository.findByEmail("query@example.com");
-        Optional<Card> foundByNumber = cardRepository.findByNumber("4444555566667777");
+        Optional<Card> foundByNumber = cardRepository.findByEncryptedNumber(cardEncryptionService.encrypt("4444555566667777"));
         List<Card> foundByUserId = cardRepository.findByUserIdAndStatus(user.getId(), CardStatus.ACTIVE);
 
         assertThat(foundByUsername).isPresent();
@@ -217,6 +225,6 @@ class EntityIntegrationTest {
         assertThat(foundByNumber.get().getUser().getId()).isEqualTo(user.getId());
 
         assertThat(foundByUserId).hasSize(1);
-        assertThat(foundByUserId.get(0).getNumber()).isEqualTo("4444555566667777");
+        assertThat(foundByUserId.get(0).getEncryptedNumber()).isEqualTo(cardEncryptionService.encrypt("4444555566667777"));
     }
 }

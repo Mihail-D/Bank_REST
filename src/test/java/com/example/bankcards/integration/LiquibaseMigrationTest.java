@@ -53,7 +53,7 @@ class LiquibaseMigrationTest {
 
         List<Map<String, Object>> columns = jdbcTemplate.queryForList(query);
 
-        assertThat(columns).hasSize(6);
+        assertThat(columns).hasSize(7); // Изменил с 6 на 7 из-за добавления поля active
 
         assertThat(columns.stream().anyMatch(col -> "id".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "name".equals(col.get("column_name")))).isTrue();
@@ -61,6 +61,7 @@ class LiquibaseMigrationTest {
         assertThat(columns.stream().anyMatch(col -> "email".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "password".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "role".equals(col.get("column_name")))).isTrue();
+        assertThat(columns.stream().anyMatch(col -> "active".equals(col.get("column_name")))).isTrue(); // Добавил проверку поля active
     }
 
     @Test
@@ -76,7 +77,7 @@ class LiquibaseMigrationTest {
 
         assertThat(columns).hasSize(5);
         assertThat(columns.stream().anyMatch(col -> "id".equals(col.get("column_name")))).isTrue();
-        assertThat(columns.stream().anyMatch(col -> "number".equals(col.get("column_name")))).isTrue();
+        assertThat(columns.stream().anyMatch(col -> "encrypted_number".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "status".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "expiration_date".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "user_id".equals(col.get("column_name")))).isTrue();

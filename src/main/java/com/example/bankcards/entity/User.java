@@ -26,20 +26,25 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role;
+    private Role role = Role.USER;
+
+    @Column(nullable = false)
+    private boolean active = true;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Card> cards;
 
     public User() {}
 
-    public User(String name, String username, String email, String password, String role) {
+    public User(String name, String username, String email, String password, Role role) {
         this.name = name;
         this.username = username;
         this.email = email;
         this.password = password;
         this.role = role;
+        this.active = true;
     }
 
     public static UserBuilder builder() {
@@ -52,7 +57,8 @@ public class User {
         private String username;
         private String email;
         private String password;
-        private String role;
+        private Role role;
+        private boolean active;
 
         public UserBuilder id(Long id) {
             this.id = id;
@@ -79,14 +85,20 @@ public class User {
             return this;
         }
 
-        public UserBuilder role(String role) {
+        public UserBuilder role(Role role) {
             this.role = role;
+            return this;
+        }
+
+        public UserBuilder active(boolean active) {
+            this.active = active;
             return this;
         }
 
         public User build() {
             User user = new User(name, username, email, password, role);
             user.setId(id);
+            user.setActive(active);
             return user;
         }
     }
