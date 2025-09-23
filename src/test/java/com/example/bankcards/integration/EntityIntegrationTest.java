@@ -41,7 +41,7 @@ class EntityIntegrationTest {
 
     @Test
     void shouldCreateAndPersistUserWithCards() {
-        User user = new User("John Doe", "johndoe", "john@example.com", "password123", "USER");
+        User user = new User("John Doe", "johndoe", "john@example.com", "password123", Role.USER);
         // Инициализация коллекции карт
         user.setCards(new java.util.ArrayList<>());
 
@@ -74,8 +74,8 @@ class EntityIntegrationTest {
 
     @Test
     void shouldCreateTransferBetweenCards() {
-        User sender = userRepository.save(new User("Sender", "sender", "sender@example.com", "pass", "USER"));
-        User receiver = userRepository.save(new User("Receiver", "receiver", "receiver@example.com", "pass", "USER"));
+        User sender = userRepository.save(new User("Sender", "sender", "sender@example.com", "pass", Role.USER));
+        User receiver = userRepository.save(new User("Receiver", "receiver", "receiver@example.com", "pass", Role.USER));
 
         Card sourceCard = new Card();
         sourceCard.setEncryptedNumber(cardEncryptionService.encrypt("1111222233334444"));
@@ -117,7 +117,7 @@ class EntityIntegrationTest {
 
     @Test
     void shouldCreateHistoryEntryForUserCardAndTransfer() {
-        User user = userRepository.save(new User("Test User", "testuser", "test@example.com", "pass", "USER"));
+        User user = userRepository.save(new User("Test User", "testuser", "test@example.com", "pass", Role.USER));
 
         Card card = new Card();
         card.setEncryptedNumber(cardEncryptionService.encrypt("9999888877776666"));
@@ -162,7 +162,7 @@ class EntityIntegrationTest {
 
     @Test
     void shouldTestCardStatusEnum() {
-        User user = userRepository.save(new User("Enum Test", "enumtest", "enum@example.com", "pass", "USER"));
+        User user = userRepository.save(new User("Enum Test", "enumtest", "enum@example.com", "pass", Role.USER));
 
         Card activeCard = new Card();
         activeCard.setEncryptedNumber(cardEncryptionService.encrypt("1111000011110000"));
@@ -201,7 +201,7 @@ class EntityIntegrationTest {
 
     @Test
     void shouldTestRepositoryQueries() {
-        User user = userRepository.save(new User("Query Test", "querytest", "query@example.com", "pass", "USER"));
+        User user = userRepository.save(new User("Query Test", "querytest", "query@example.com", "pass", Role.USER));
 
         Card card = new Card();
         card.setEncryptedNumber(cardEncryptionService.encrypt("4444555566667777"));

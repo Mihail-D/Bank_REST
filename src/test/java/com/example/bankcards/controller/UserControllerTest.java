@@ -4,6 +4,7 @@ import com.example.bankcards.dto.CreateUserDto;
 import com.example.bankcards.dto.UserDto;
 import com.example.bankcards.dto.UserMapper;
 import com.example.bankcards.entity.User;
+import com.example.bankcards.entity.Role;
 import com.example.bankcards.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -91,22 +92,25 @@ class UserControllerTest {
     void createUserSuccess() throws Exception {
         // Arrange
         CreateUserDto createDto = CreateUserDto.builder()
+                .name("Admin User")
                 .username("adminuser")
                 .email("admin@mail.com")
                 .password("password123") // Минимум 6 символов
-                .role("ADMIN")
+                .role(Role.ADMIN)
                 .build();
 
         User user = new User();
+        user.setName("Admin User");
         user.setUsername("adminuser");
         user.setEmail("admin@mail.com");
         user.setPassword("encoded");
-        user.setRole("ADMIN");
+        user.setRole(Role.ADMIN);
 
         UserDto userDto = new UserDto();
+        userDto.setName("Admin User");
         userDto.setUsername("adminuser");
         userDto.setEmail("admin@mail.com");
-        userDto.setRole("ADMIN");
+        userDto.setRole(Role.ADMIN);
 
         when(userMapper.toEntity(any(CreateUserDto.class))).thenReturn(user);
         when(passwordEncoder.encode("password123")).thenReturn("encoded");
@@ -127,30 +131,32 @@ class UserControllerTest {
     void createUserForbiddenForNonAdmin() throws Exception {
         // Arrange
         CreateUserDto createDto = CreateUserDto.builder()
+                .name("Test User")
                 .username("testuser")
                 .email("user@mail.com")
-                .password("password123") // Минимум 6 символов
-                .role("USER")
+                .password("password123")
+                .role(Role.USER)
                 .build();
 
-        // Мокируем создание пользователя для случая когда запрос проходит
         User user = new User();
+        user.setName("Test User");
         user.setUsername("testuser");
         user.setEmail("user@mail.com");
         user.setPassword("encoded");
-        user.setRole("USER");
+        user.setRole(Role.USER);
 
         UserDto userDto = new UserDto();
+        userDto.setName("Test User");
         userDto.setUsername("testuser");
         userDto.setEmail("user@mail.com");
-        userDto.setRole("USER");
+        userDto.setRole(Role.USER);
 
         when(userMapper.toEntity(any(CreateUserDto.class))).thenReturn(user);
         when(passwordEncoder.encode("password123")).thenReturn("encoded");
         when(userService.save(any(User.class))).thenReturn(user);
         when(userMapper.toDto(any(User.class))).thenReturn(userDto);
 
-        // Act & Assert - Поскольку мы разрешили все запросы, ожидаем успешный ответ
+        // Act & Assert
         mockMvc.perform(post("/api/users")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -166,12 +172,12 @@ class UserControllerTest {
         User user = new User();
         user.setUsername("user1");
         user.setEmail("user1@mail.com");
-        user.setRole("USER");
+        user.setRole(Role.USER);
 
         UserDto userDto = new UserDto();
         userDto.setUsername("user1");
         userDto.setEmail("user1@mail.com");
-        userDto.setRole("USER");
+        userDto.setRole(Role.USER);
 
         when(userService.findAll()).thenReturn(Collections.singletonList(user));
         when(userMapper.toDto(any(User.class))).thenReturn(userDto);
@@ -190,12 +196,12 @@ class UserControllerTest {
         user.setId(1L);
         user.setUsername("user1");
         user.setEmail("user1@mail.com");
-        user.setRole("USER");
+        user.setRole(Role.USER);
 
         UserDto userDto = new UserDto();
         userDto.setUsername("user1");
         userDto.setEmail("user1@mail.com");
-        userDto.setRole("USER");
+        userDto.setRole(Role.USER);
 
         when(userService.findById(1L)).thenReturn(Optional.of(user));
         when(userMapper.toDto(any(User.class))).thenReturn(userDto);

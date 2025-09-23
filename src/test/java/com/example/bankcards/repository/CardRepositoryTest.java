@@ -3,6 +3,7 @@ package com.example.bankcards.repository;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
+import com.example.bankcards.entity.Role;
 import com.example.bankcards.service.CardEncryptionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,8 +42,8 @@ class CardRepositoryTest {
     @BeforeEach
     void setUp() {
         // Создаем тестовых пользователей
-        testUser1 = new User("Test User 1", "testuser1", "test1@example.com", "password", "USER");
-        testUser2 = new User("Test User 2", "testuser2", "test2@example.com", "password", "USER");
+        testUser1 = new User("Test User 1", "testuser1", "test1@example.com", "password", Role.USER);
+        testUser2 = new User("Test User 2", "testuser2", "test2@example.com", "password", Role.USER);
 
         entityManager.persistAndFlush(testUser1);
         entityManager.persistAndFlush(testUser2);

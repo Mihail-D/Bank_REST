@@ -18,9 +18,6 @@ public class CardNumberGenerator {
         this.cardEncryptionService = cardEncryptionService;
     }
 
-    /**
-     * Проверка номера карты по алгоритму Луна
-     */
     public static boolean isValidLuhn(String cardNumber) {
         int sum = 0;
         boolean alternate = false;
@@ -36,9 +33,6 @@ public class CardNumberGenerator {
         return sum % 10 == 0;
     }
 
-    /**
-     * Генерация уникального номера карты, проходящего Луна
-     */
     public String generateUniqueCardNumber() {
         String cardNumber;
         String encrypted;

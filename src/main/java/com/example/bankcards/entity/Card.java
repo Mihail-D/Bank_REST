@@ -34,5 +34,4 @@ public class Card {
 
     @OneToMany(mappedBy = "destinationCard", cascade = CascadeType.ALL)
     private List<Transfer> incomingTransfers;
-
 }
