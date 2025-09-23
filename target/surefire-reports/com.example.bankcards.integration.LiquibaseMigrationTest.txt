@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.example.bankcards.integration.LiquibaseMigrationTest
--------------------------------------------------------------------------------
-Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.703 s -- in com.example.bankcards.integration.LiquibaseMigrationTest

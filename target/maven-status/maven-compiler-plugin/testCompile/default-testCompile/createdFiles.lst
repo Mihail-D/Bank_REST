@@ -1,5 +1,0 @@
-com\example\bankcards\integration\EntityIntegrationTest.class
-com\example\bankcards\service\impl\UserServiceImplTest.class
-com\example\bankcards\controller\AuthControllerTest$TestSecurityConfig.class
-com\example\bankcards\controller\UserControllerTest$TestSecurityConfig.class
-com\example\bankcards\integration\LiquibaseMigrationTest.class

@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.example.bankcards.controller.UserControllerTest
--------------------------------------------------------------------------------
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.690 s -- in com.example.bankcards.controller.UserControllerTest
