@@ -22,6 +22,7 @@ class SecurityConfigTest {
         // Тестируем POST запрос на регистрацию (правильный HTTP метод)
         String requestBody = """
                 {
+                    "name": "Test User",
                     "username": "testuser",
                     "email": "test@example.com",
                     "password": "password123",
