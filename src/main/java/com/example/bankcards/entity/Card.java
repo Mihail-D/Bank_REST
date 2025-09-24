@@ -3,6 +3,7 @@ package com.example.bankcards.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -24,6 +25,9 @@ public class Card {
 
     @Column(nullable = false)
     private LocalDate expirationDate;
+
+    @Column(nullable = false)
+    private BigDecimal balance = BigDecimal.ZERO;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

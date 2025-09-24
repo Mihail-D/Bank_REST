@@ -75,11 +75,12 @@ class LiquibaseMigrationTest {
 
         List<Map<String, Object>> columns = jdbcTemplate.queryForList(query);
 
-        assertThat(columns).hasSize(5);
+        assertThat(columns).hasSize(6); // Было 5, стало 6 из-за balance
         assertThat(columns.stream().anyMatch(col -> "id".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "encrypted_number".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "status".equals(col.get("column_name")))).isTrue();
         assertThat(columns.stream().anyMatch(col -> "expiration_date".equals(col.get("column_name")))).isTrue();
+        assertThat(columns.stream().anyMatch(col -> "balance".equals(col.get("column_name")))).isTrue(); // Новое поле
         assertThat(columns.stream().anyMatch(col -> "user_id".equals(col.get("column_name")))).isTrue();
     }
 
