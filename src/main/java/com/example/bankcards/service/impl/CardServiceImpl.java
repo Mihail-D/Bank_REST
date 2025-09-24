@@ -10,6 +10,8 @@ import com.example.bankcards.service.CardNumberGenerator;
 import com.example.bankcards.service.CardService;
 import com.example.bankcards.specification.CardSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -257,6 +259,55 @@ public class CardServiceImpl implements CardService {
         } else {
             return cardRepository.findAll();
         }
+    }
+
+    // Методы с пагинацией
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Card> getAllCardsWithPagination(Pageable pageable) {
+        return cardRepository.findAll(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Card> getCardsByUserIdWithPagination(Long userId, Pageable pageable) {
+        Specification<Card> spec = CardSpecification.hasUserId(userId);
+        return cardRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Card> getCardsByStatusWithPagination(CardStatus status, Pageable pageable) {
+        Specification<Card> spec = CardSpecification.hasStatus(status);
+        return cardRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Card> searchCardsWithPagination(CardSearchDto searchDto, Pageable pageable) {
+        Specification<Card> spec = Specification.where(null);
+
+        if (searchDto.getStatus() != null) {
+            spec = spec.and(CardSpecification.hasStatus(searchDto.getStatus()));
+        }
+
+        if (searchDto.getUserId() != null) {
+            spec = spec.and(CardSpecification.hasUserId(searchDto.getUserId()));
+        }
+
+        if (searchDto.getOwnerName() != null && !searchDto.getOwnerName().isEmpty()) {
+            spec = spec.and(CardSpecification.hasOwnerName(searchDto.getOwnerName()));
+        }
+
+        if (searchDto.getIsExpired() != null) {
+            if (searchDto.getIsExpired()) {
+                spec = spec.and(CardSpecification.isExpired());
+            } else {
+                spec = spec.and(CardSpecification.isNotExpired());
+            }
+        }
+
+        return cardRepository.findAll(spec, pageable);
     }
 
     // Вспомогательный метод для фильтрации по маске

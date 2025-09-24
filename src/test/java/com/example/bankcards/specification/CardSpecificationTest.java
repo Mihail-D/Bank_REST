@@ -26,7 +26,9 @@ class CardSpecificationTest {
     private Path<Object> statusPath;
     private Path<Object> userPath;
     private Path<Object> userIdPath;
-    private Path<Object> namePath;
+    private Path<String> namePath;
+    private Path<String> usernamePath;
+    private Path<String> emailPath;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -37,12 +39,16 @@ class CardSpecificationTest {
         statusPath = mock(Path.class);
         userPath = mock(Path.class);
         userIdPath = mock(Path.class);
-        namePath = mock(Path.class);
+        namePath = (Path<String>) mock(Path.class);
+        usernamePath = (Path<String>) mock(Path.class);
+        emailPath = (Path<String>) mock(Path.class);
 
         when(root.get("status")).thenReturn(statusPath);
         when(root.get("user")).thenReturn(userPath);
         when(userPath.get("id")).thenReturn(userIdPath);
-        when(userPath.get("name")).thenReturn(namePath);
+        when(userPath.get("name")).thenReturn((Path) namePath);
+        when(userPath.get("username")).thenReturn((Path) usernamePath);
+        when(userPath.get("email")).thenReturn((Path) emailPath);
     }
 
     @Test
@@ -147,10 +153,24 @@ class CardSpecificationTest {
         String ownerName = "Иван";
         Predicate expectedPredicate = mock(Predicate.class);
 
-        // Настраиваем моки для упрощенной проверки
+        // Настраиваем моки для OR условия
         Expression<String> nameLower = mock(Expression.class);
-        when(criteriaBuilder.lower(any(Expression.class))).thenReturn(nameLower);
-        when(criteriaBuilder.like(eq(nameLower), anyString())).thenReturn(expectedPredicate);
+        Expression<String> usernameLower = mock(Expression.class);
+        Expression<String> emailLower = mock(Expression.class);
+
+        Predicate namePredicate = mock(Predicate.class);
+        Predicate usernamePredicate = mock(Predicate.class);
+        Predicate emailPredicate = mock(Predicate.class);
+
+        when(criteriaBuilder.lower(namePath)).thenReturn(nameLower);
+        when(criteriaBuilder.lower(usernamePath)).thenReturn(usernameLower);
+        when(criteriaBuilder.lower(emailPath)).thenReturn(emailLower);
+
+        when(criteriaBuilder.like(eq(nameLower), anyString())).thenReturn(namePredicate);
+        when(criteriaBuilder.like(eq(usernameLower), anyString())).thenReturn(usernamePredicate);
+        when(criteriaBuilder.like(eq(emailLower), anyString())).thenReturn(emailPredicate);
+
+        when(criteriaBuilder.or(namePredicate, usernamePredicate, emailPredicate)).thenReturn(expectedPredicate);
 
         // When
         Specification<Card> spec = CardSpecification.hasOwnerName(ownerName);
@@ -158,8 +178,13 @@ class CardSpecificationTest {
 
         // Then
         assertEquals(expectedPredicate, result);
-        verify(criteriaBuilder).lower(any(Expression.class));
-        verify(criteriaBuilder).like(eq(nameLower), anyString());
+        verify(criteriaBuilder).lower(namePath);
+        verify(criteriaBuilder).lower(usernamePath);
+        verify(criteriaBuilder).lower(emailPath);
+        verify(criteriaBuilder).like(eq(nameLower), eq("%иван%"));
+        verify(criteriaBuilder).like(eq(usernameLower), eq("%иван%"));
+        verify(criteriaBuilder).like(eq(emailLower), eq("%иван%"));
+        verify(criteriaBuilder).or(namePredicate, usernamePredicate, emailPredicate);
     }
 
     @Test

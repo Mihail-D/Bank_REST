@@ -1,19 +1,26 @@
 package com.example.bankcards.dto;
 
 import com.example.bankcards.entity.CardStatus;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+import java.time.LocalDate;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CardSearchDto {
+
     private CardStatus status;
     private Long userId;
     private String ownerName;
-    private String mask; // последние 4 цифры карты
+    private String mask;
+    private Boolean isExpired;
+    private LocalDate createdAfter;
+    private LocalDate createdBefore;
 
-    public CardSearchDto() {}
-
+    // Конструктор для обратной совместимости
     public CardSearchDto(CardStatus status, Long userId, String ownerName, String mask) {
         this.status = status;
         this.userId = userId;

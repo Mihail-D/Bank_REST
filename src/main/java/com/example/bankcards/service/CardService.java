@@ -4,6 +4,8 @@ import com.example.bankcards.dto.CardSearchDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +26,12 @@ public interface CardService {
     List<Card> searchCardsByMask(String mask);
     List<Card> searchCardsByOwnerName(String ownerName);
     List<Card> searchCardsByStatusAndOwner(CardStatus status, Long userId);
+
+    // Методы с пагинацией
+    Page<Card> getAllCardsWithPagination(Pageable pageable);
+    Page<Card> getCardsByUserIdWithPagination(Long userId, Pageable pageable);
+    Page<Card> getCardsByStatusWithPagination(CardStatus status, Pageable pageable);
+    Page<Card> searchCardsWithPagination(CardSearchDto searchDto, Pageable pageable);
 
     // Операции управления картой
     Card blockCard(Long cardId);

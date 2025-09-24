@@ -1,18 +1,20 @@
 package com.example.bankcards.controller;
 
-import com.example.bankcards.dto.CardDto;
-import com.example.bankcards.dto.CardMapper;
-import com.example.bankcards.dto.CardSearchDto;
+import com.example.bankcards.dto.*;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.service.CardService;
 import com.example.bankcards.service.UserService;
+import com.example.bankcards.util.PageableUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -222,6 +224,168 @@ public class CardController {
             List<Card> cards = cardService.searchCardsByStatusAndOwner(status, userId);
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
             return ResponseEntity.ok(cardDtos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Получение всех карт с пагинацией
+    @GetMapping("/paginated")
+    public ResponseEntity<PageResponseDto<CardDto>> getAllCardsWithPagination(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+
+        try {
+            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+            Page<Card> cardPage = cardService.getAllCardsWithPagination(pageable);
+
+            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+
+            PageResponseDto<CardDto> response = PageResponseDto.of(
+                cardDtos,
+                cardPage.getNumber(),
+                cardPage.getSize(),
+                cardPage.getTotalElements(),
+                cardPage.getTotalPages(),
+                cardPage.isFirst(),
+                cardPage.isLast()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Получение карт пользователя с пагинацией
+    @GetMapping("/user/{userId}/paginated")
+    public ResponseEntity<PageResponseDto<CardDto>> getUserCardsWithPagination(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+
+        try {
+            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+            Page<Card> cardPage = cardService.getCardsByUserIdWithPagination(userId, pageable);
+
+            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+
+            PageResponseDto<CardDto> response = PageResponseDto.of(
+                cardDtos,
+                cardPage.getNumber(),
+                cardPage.getSize(),
+                cardPage.getTotalElements(),
+                cardPage.getTotalPages(),
+                cardPage.isFirst(),
+                cardPage.isLast()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Получение карт по статусу с пагинацией
+    @GetMapping("/status/{status}/paginated")
+    public ResponseEntity<PageResponseDto<CardDto>> getCardsByStatusWithPagination(
+            @PathVariable CardStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+
+        try {
+            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+            Page<Card> cardPage = cardService.getCardsByStatusWithPagination(status, pageable);
+
+            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+
+            PageResponseDto<CardDto> response = PageResponseDto.of(
+                cardDtos,
+                cardPage.getNumber(),
+                cardPage.getSize(),
+                cardPage.getTotalElements(),
+                cardPage.getTotalPages(),
+                cardPage.isFirst(),
+                cardPage.isLast()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Поиск карт с пагинацией
+    @PostMapping("/search/paginated")
+    public ResponseEntity<PageResponseDto<CardDto>> searchCardsWithPagination(
+            @Valid @RequestBody CardSearchDto searchDto,
+            @Valid @RequestBody PageRequestDto pageRequest) {
+
+        try {
+            Pageable pageable = PageableUtils.createPageable(pageRequest);
+            Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
+
+            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+
+            PageResponseDto<CardDto> response = PageResponseDto.of(
+                cardDtos,
+                cardPage.getNumber(),
+                cardPage.getSize(),
+                cardPage.getTotalElements(),
+                cardPage.getTotalPages(),
+                cardPage.isFirst(),
+                cardPage.isLast()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Поиск карт с пагинацией через GET параметры
+    @GetMapping("/search/paginated")
+    public ResponseEntity<PageResponseDto<CardDto>> searchCardsWithPaginationGet(
+            @RequestParam(required = false) CardStatus status,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String ownerName,
+            @RequestParam(required = false) Boolean isExpired,
+            @RequestParam(required = false) String mask,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+
+        try {
+            CardSearchDto searchDto = new CardSearchDto();
+            searchDto.setStatus(status);
+            searchDto.setUserId(userId);
+            searchDto.setOwnerName(ownerName);
+            searchDto.setIsExpired(isExpired);
+            searchDto.setMask(mask);
+
+            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+            Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
+
+            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+
+            PageResponseDto<CardDto> response = PageResponseDto.of(
+                cardDtos,
+                cardPage.getNumber(),
+                cardPage.getSize(),
+                cardPage.getTotalElements(),
+                cardPage.getTotalPages(),
+                cardPage.isFirst(),
+                cardPage.isLast()
+            );
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
