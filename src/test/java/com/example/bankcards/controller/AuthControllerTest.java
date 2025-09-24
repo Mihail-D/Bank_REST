@@ -6,15 +6,14 @@ import com.example.bankcards.dto.UserDto;
 import com.example.bankcards.dto.UserMapper;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.Role;
+import com.example.bankcards.service.AuthService;
 import com.example.bankcards.service.UserService;
 import com.example.bankcards.security.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -31,7 +30,6 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
 @WebMvcTest(AuthController.class)
 @Import(AuthControllerTest.TestSecurityConfig.class)
 class AuthControllerTest {
@@ -39,49 +37,24 @@ class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
+    @MockBean
     private UserService userService;
 
-    @Autowired
+    @MockBean
     private PasswordEncoder passwordEncoder;
 
-    @Autowired
+    @MockBean
     private JwtService jwtService;
 
-    @Autowired
+    @MockBean
     private UserMapper userMapper;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    @TestConfiguration
+    @org.springframework.boot.test.context.TestConfiguration
     @EnableWebSecurity
     static class TestSecurityConfig {
-
-        @Bean
-        @Primary
-        public UserService userService() {
-            return mock(UserService.class);
-        }
-
-        @Bean
-        @Primary
-        public PasswordEncoder passwordEncoder() {
-            return mock(PasswordEncoder.class);
-        }
-
-        @Bean
-        @Primary
-        public JwtService jwtService() {
-            return mock(JwtService.class);
-        }
-
-        @Bean
-        @Primary
-        public UserMapper userMapper() {
-            return mock(UserMapper.class);
-        }
-
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             http
