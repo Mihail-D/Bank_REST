@@ -1,8 +1,7 @@
 package com.example.bankcards.controller;
 
-import com.example.bankcards.dto.LoginRequest;
-import com.example.bankcards.dto.RegistrationRequest;
-import com.example.bankcards.dto.UserDto;
+import com.example.bankcards.dto.AuthRequest;
+import com.example.bankcards.dto.RegisterRequest;
 import com.example.bankcards.dto.UserMapper;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.Role;
@@ -10,8 +9,6 @@ import com.example.bankcards.service.UserService;
 import com.example.bankcards.security.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -31,7 +28,6 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
 @WebMvcTest(AuthController.class)
 @Import(AuthControllerTest.TestSecurityConfig.class)
 class AuthControllerTest {
@@ -47,9 +43,6 @@ class AuthControllerTest {
 
     @Autowired
     private JwtService jwtService;
-
-    @Autowired
-    private UserMapper userMapper;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -97,7 +90,7 @@ class AuthControllerTest {
     @Test
     void registerSuccess() throws Exception {
         // Arrange
-        RegistrationRequest request = new RegistrationRequest();
+        RegisterRequest request = new RegisterRequest();
         request.setName("New User");
         request.setUsername("newuser");
         request.setEmail("new@mail.com");
@@ -116,7 +109,6 @@ class AuthControllerTest {
         user.setRole(Role.USER);
 
         when(userService.save(any())).thenReturn(user);
-        when(userMapper.toDto(user)).thenReturn(new UserDto());
 
         // Act & Assert
         mockMvc.perform(post("/auth/register")
@@ -128,7 +120,7 @@ class AuthControllerTest {
     @Test
     void registerUserAlreadyExists() throws Exception {
         // Arrange
-        RegistrationRequest request = new RegistrationRequest();
+        RegisterRequest request = new RegisterRequest();
         request.setName("Existing User");
         request.setUsername("existinguser");
         request.setEmail("existing@mail.com");
@@ -147,7 +139,7 @@ class AuthControllerTest {
     @Test
     void registerEmailAlreadyExists() throws Exception {
         // Arrange
-        RegistrationRequest request = new RegistrationRequest();
+        RegisterRequest request = new RegisterRequest();
         request.setName("New User");
         request.setUsername("newuser");
         request.setEmail("existing@mail.com");
@@ -167,7 +159,7 @@ class AuthControllerTest {
     @Test
     void loginSuccess() throws Exception {
         // Arrange
-        LoginRequest request = new LoginRequest();
+        AuthRequest request = new AuthRequest();
         request.setUsername("testuser");
         request.setPassword("password123");
 
@@ -185,13 +177,13 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("jwt-token"));
+                .andExpect(jsonPath("$.token").value("jwt-token"));
     }
 
     @Test
     void loginUserNotFound() throws Exception {
         // Arrange
-        LoginRequest request = new LoginRequest();
+        AuthRequest request = new AuthRequest();
         request.setUsername("nonexistent");
         request.setPassword("password123");
 
@@ -207,7 +199,7 @@ class AuthControllerTest {
     @Test
     void loginWrongPassword() throws Exception {
         // Arrange
-        LoginRequest request = new LoginRequest();
+        AuthRequest request = new AuthRequest();
         request.setUsername("testuser");
         request.setPassword("wrongpassword");
 
