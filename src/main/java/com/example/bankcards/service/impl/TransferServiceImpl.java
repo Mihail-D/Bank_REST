@@ -1,8 +1,10 @@
 package com.example.bankcards.service.impl;
 
 import com.example.bankcards.entity.Card;
+import com.example.bankcards.entity.History;
 import com.example.bankcards.entity.Transfer;
 import com.example.bankcards.repository.CardRepository;
+import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.service.TransferService;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,10 +22,20 @@ public class TransferServiceImpl implements TransferService {
     private TransferRepository transferRepository;
     @Autowired
     private CardRepository cardRepository;
+    @Autowired
+    private HistoryRepository historyRepository;
 
     @Override
     @Transactional
     public Transfer createTransfer(Long fromCardId, Long toCardId, BigDecimal amount, Long userId) {
+        // edge case: перевод самому себе
+        if (fromCardId.equals(toCardId)) {
+            throw new IllegalArgumentException("Нельзя переводить на ту же самую карту");
+        }
+        // edge case: отрицательная или нулевая сумма
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Сумма перевода должна быть положительной");
+        }
         Card fromCard = cardRepository.findById(fromCardId)
                 .orElseThrow(() -> new EntityNotFoundException("Source card not found"));
         Card toCard = cardRepository.findById(toCardId)
@@ -34,10 +46,10 @@ public class TransferServiceImpl implements TransferService {
         }
         if (fromCard.getStatus() != com.example.bankcards.entity.CardStatus.ACTIVE ||
             toCard.getStatus() != com.example.bankcards.entity.CardStatus.ACTIVE) {
-            throw new IllegalStateException("One of the cards is not active");
+            throw new IllegalStateException("Одна из карт неактивна");
         }
         if (fromCard.getBalance().compareTo(amount) < 0) {
-            throw new IllegalArgumentException("Insufficient balance");
+            throw new IllegalArgumentException("Недостаточно средств на карте");
         }
         // Списание и зачисление
         fromCard.setBalance(fromCard.getBalance().subtract(amount));
@@ -51,7 +63,17 @@ public class TransferServiceImpl implements TransferService {
         transfer.setAmount(amount);
         transfer.setTransferDate(LocalDateTime.now());
         transfer.setStatus("SUCCESS");
-        return transferRepository.save(transfer);
+        Transfer savedTransfer = transferRepository.save(transfer);
+        // Аудит перевода
+        History history = new History();
+        history.setEventType("TRANSFER");
+        history.setEventDate(LocalDateTime.now());
+        history.setDescription("Перевод с карты " + fromCardId + " на карту " + toCardId + " на сумму " + amount);
+        history.setUser(fromCard.getUser());
+        history.setCard(fromCard);
+        history.setTransfer(savedTransfer);
+        historyRepository.save(history);
+        return savedTransfer;
     }
 
     @Override
@@ -69,4 +91,3 @@ public class TransferServiceImpl implements TransferService {
         return transferRepository.findByStatus(status);
     }
 }
-

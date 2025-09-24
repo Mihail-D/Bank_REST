@@ -2,9 +2,11 @@ package com.example.bankcards.service.impl;
 
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
+import com.example.bankcards.entity.History;
 import com.example.bankcards.entity.Transfer;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.repository.CardRepository;
+import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.repository.TransferRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,8 @@ class TransferServiceImplTest {
     private TransferRepository transferRepository;
     @Mock
     private CardRepository cardRepository;
+    @Mock
+    private HistoryRepository historyRepository;
     @InjectMocks
     private TransferServiceImpl transferService;
 
@@ -89,5 +93,33 @@ class TransferServiceImplTest {
         assertThrows(SecurityException.class, () ->
                 transferService.createTransfer(10L, 20L, new BigDecimal("10.00"), 1L));
     }
-}
 
+    @Test
+    void createTransfer_auditHistoryCreated() {
+        when(cardRepository.findById(10L)).thenReturn(Optional.of(fromCard));
+        when(cardRepository.findById(20L)).thenReturn(Optional.of(toCard));
+        when(transferRepository.save(any(Transfer.class))).thenAnswer(i -> {
+            Transfer t = i.getArgument(0);
+            t.setId(100L);
+            return t;
+        });
+        when(cardRepository.save(any(Card.class))).thenAnswer(i -> i.getArgument(0));
+        when(historyRepository.save(any(History.class))).thenAnswer(i -> i.getArgument(0));
+        transferService.createTransfer(10L, 20L, new BigDecimal("10.00"), 1L);
+        verify(historyRepository, times(1)).save(any(History.class));
+    }
+
+    @Test
+    void createTransfer_sameCard() {
+        assertThrows(IllegalArgumentException.class, () ->
+                transferService.createTransfer(10L, 10L, new BigDecimal("10.00"), 1L));
+    }
+
+    @Test
+    void createTransfer_negativeAmount() {
+        assertThrows(IllegalArgumentException.class, () ->
+                transferService.createTransfer(10L, 20L, new BigDecimal("-5.00"), 1L));
+        assertThrows(IllegalArgumentException.class, () ->
+                transferService.createTransfer(10L, 20L, BigDecimal.ZERO, 1L));
+    }
+}
