@@ -5,13 +5,14 @@ import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.Transfer;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface HistoryRepository extends JpaRepository<History, Long> {
+public interface HistoryRepository extends JpaRepository<History, Long>, JpaSpecificationExecutor<History> {
 
     List<History> findByUser(User user);
 
