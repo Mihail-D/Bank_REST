@@ -39,10 +39,7 @@ public class CardSpecification {
                 return criteriaBuilder.conjunction();
             }
             String pattern = "%" + ownerName.trim().toLowerCase() + "%";
-            return criteriaBuilder.or(
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("user").get("firstName")), pattern),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("user").get("lastName")), pattern)
-            );
+            return criteriaBuilder.like(criteriaBuilder.lower(root.get("user").get("name")), pattern);
         };
     }
 
