@@ -1,5 +1,6 @@
 package com.example.bankcards.service;
 
+import com.example.bankcards.dto.CardSearchDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
@@ -17,6 +18,12 @@ public interface CardService {
     List<Card> getCardsByStatus(CardStatus status);
     List<Card> getActiveCardsByUserId(Long userId);
     Optional<Card> getCardByMaskedNumber(String maskedNumber);
+
+    // Методы поиска
+    List<Card> searchCards(CardSearchDto searchDto);
+    List<Card> searchCardsByMask(String mask);
+    List<Card> searchCardsByOwnerName(String ownerName);
+    List<Card> searchCardsByStatusAndOwner(CardStatus status, Long userId);
 
     // Операции управления картой
     Card blockCard(Long cardId);

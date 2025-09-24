@@ -2,6 +2,7 @@ package com.example.bankcards.controller;
 
 import com.example.bankcards.dto.CardDto;
 import com.example.bankcards.dto.CardMapper;
+import com.example.bankcards.dto.CardSearchDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
@@ -168,6 +169,61 @@ public class CardController {
             return ResponseEntity.ok(status);
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Поиск карт с комбинированными фильтрами
+    @GetMapping("/search")
+    public ResponseEntity<List<CardDto>> searchCards(
+            @RequestParam(required = false) CardStatus status,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String ownerName,
+            @RequestParam(required = false) String mask) {
+        try {
+            CardSearchDto searchDto = new CardSearchDto(status, userId, ownerName, mask);
+            List<Card> cards = cardService.searchCards(searchDto);
+            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+            return ResponseEntity.ok(cardDtos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Поиск карт по маске номера
+    @GetMapping("/search/mask/{mask}")
+    public ResponseEntity<List<CardDto>> searchCardsByMask(@PathVariable String mask) {
+        try {
+            List<Card> cards = cardService.searchCardsByMask(mask);
+            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+            return ResponseEntity.ok(cardDtos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Поиск карт по имени владельца
+    @GetMapping("/search/owner")
+    public ResponseEntity<List<CardDto>> searchCardsByOwnerName(@RequestParam String ownerName) {
+        try {
+            List<Card> cards = cardService.searchCardsByOwnerName(ownerName);
+            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+            return ResponseEntity.ok(cardDtos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Поиск карт по статусу и владельцу
+    @GetMapping("/search/filter")
+    public ResponseEntity<List<CardDto>> searchCardsByStatusAndOwner(
+            @RequestParam(required = false) CardStatus status,
+            @RequestParam(required = false) Long userId) {
+        try {
+            List<Card> cards = cardService.searchCardsByStatusAndOwner(status, userId);
+            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+            return ResponseEntity.ok(cardDtos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 

@@ -1,5 +1,6 @@
 package com.example.bankcards.service.impl;
 
+import com.example.bankcards.dto.CardSearchDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
@@ -7,13 +8,16 @@ import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.CardEncryptionService;
 import com.example.bankcards.service.CardNumberGenerator;
 import com.example.bankcards.service.CardService;
+import com.example.bankcards.specification.CardSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -175,6 +179,109 @@ public class CardServiceImpl implements CardService {
         cardRepository.save(oldCard);
 
         return newCard;
+    }
+
+    // Методы поиска
+    @Override
+    @Transactional(readOnly = true)
+    public List<Card> searchCards(CardSearchDto searchDto) {
+        Specification<Card> spec = null;
+
+        if (searchDto.getStatus() != null) {
+            spec = CardSpecification.hasStatus(searchDto.getStatus());
+        }
+
+        if (searchDto.getUserId() != null) {
+            Specification<Card> ownerSpec = CardSpecification.hasOwner(searchDto.getUserId());
+            spec = spec == null ? ownerSpec : spec.and(ownerSpec);
+        }
+
+        if (searchDto.getOwnerName() != null && !searchDto.getOwnerName().trim().isEmpty()) {
+            Specification<Card> nameSpec = CardSpecification.hasOwnerName(searchDto.getOwnerName());
+            spec = spec == null ? nameSpec : spec.and(nameSpec);
+        }
+
+        List<Card> cards;
+        if (spec != null) {
+            cards = cardRepository.findAll(spec);
+        } else {
+            cards = cardRepository.findAll();
+        }
+
+        // Дополнительная фильтрация по маске номера (поскольку номера зашифрованы)
+        if (searchDto.getMask() != null && !searchDto.getMask().trim().isEmpty()) {
+            cards = filterByMask(cards, searchDto.getMask());
+        }
+
+        return cards;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Card> searchCardsByMask(String mask) {
+        if (mask == null || mask.trim().isEmpty()) {
+            return List.of();
+        }
+
+        List<Card> allCards = cardRepository.findAll();
+        return filterByMask(allCards, mask);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Card> searchCardsByOwnerName(String ownerName) {
+        if (ownerName == null || ownerName.trim().isEmpty()) {
+            return List.of();
+        }
+
+        Specification<Card> spec = CardSpecification.hasOwnerName(ownerName);
+        return cardRepository.findAll(spec);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Card> searchCardsByStatusAndOwner(CardStatus status, Long userId) {
+        Specification<Card> spec = null;
+
+        if (status != null) {
+            spec = CardSpecification.hasStatus(status);
+        }
+
+        if (userId != null) {
+            Specification<Card> ownerSpec = CardSpecification.hasOwner(userId);
+            spec = spec == null ? ownerSpec : spec.and(ownerSpec);
+        }
+
+        if (spec != null) {
+            return cardRepository.findAll(spec);
+        } else {
+            return cardRepository.findAll();
+        }
+    }
+
+    // Вспомогательный метод для фильтрации по маске
+    private List<Card> filterByMask(List<Card> cards, String mask) {
+        String searchMask = mask.trim();
+
+        return cards.stream()
+                .filter(card -> {
+                    try {
+                        String decrypted = cardEncryptionService.decrypt(card.getEncryptedNumber());
+                        String maskedNumber = cardEncryptionService.mask(decrypted);
+
+                        // Поиск по последним 4 цифрам
+                        if (searchMask.length() == 4 && searchMask.matches("\\d{4}")) {
+                            return maskedNumber.endsWith(searchMask);
+                        }
+
+                        // Поиск по полной маске
+                        return maskedNumber.contains(searchMask);
+                    } catch (Exception e) {
+                        // Если не удается расшифровать, исключаем карту из результата
+                        return false;
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     // Вспомогательные методы
