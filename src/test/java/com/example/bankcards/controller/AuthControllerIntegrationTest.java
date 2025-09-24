@@ -10,7 +10,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -39,10 +38,11 @@ class AuthControllerIntegrationTest {
         registerRequest.setUsername("testuser");
         registerRequest.setPassword("testpass");
         registerRequest.setEmail("test@mail.com");
+
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().is(201));
 
         AuthRequest authRequest = new AuthRequest();
         authRequest.setUsername("testuser");
@@ -61,10 +61,12 @@ class AuthControllerIntegrationTest {
         registerRequest.setUsername("user1");
         registerRequest.setPassword("pass");
         registerRequest.setEmail("user1@mail.com");
+
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().is(201));
+
         RegisterRequest duplicate = new RegisterRequest();
         duplicate.setName("User Two");
         duplicate.setUsername("user1");
@@ -73,7 +75,7 @@ class AuthControllerIntegrationTest {
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(duplicate)))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -83,16 +85,18 @@ class AuthControllerIntegrationTest {
         registerRequest.setUsername("user2");
         registerRequest.setPassword("pass");
         registerRequest.setEmail("user2@mail.com");
+
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().is(201));
+
         AuthRequest authRequest = new AuthRequest();
         authRequest.setUsername("user2");
         authRequest.setPassword("wrong");
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(authRequest)))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isUnauthorized());
     }
 }

@@ -34,7 +34,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
+    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
         if (userService.findByUsername(request.getUsername()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("");
         }
@@ -46,18 +46,18 @@ public class AuthController {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
+        user.setRole(request.getRole() != null ? request.getRole() : com.example.bankcards.entity.Role.USER);
         userService.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
         return userService.findByUsername(request.getUsername())
                 .map(user -> {
                     if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                         String token = jwtService.generateToken(user.getUsername(), user.getRole());
-                        return ResponseEntity.ok(token);
+                        return ResponseEntity.ok(java.util.Collections.singletonMap("token", token));
                     } else {
                         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("");
                     }
