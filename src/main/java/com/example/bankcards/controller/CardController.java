@@ -7,32 +7,41 @@ import com.example.bankcards.entity.User;
 import com.example.bankcards.service.CardService;
 import com.example.bankcards.service.UserService;
 import com.example.bankcards.util.PageableUtils;
+import com.example.bankcards.security.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/cards")
 public class CardController {
 
+    private static final Logger log = LoggerFactory.getLogger(CardController.class);
+
     private final CardService cardService;
     private final UserService userService;
     private final CardMapper cardMapper;
+    private final PermissionService permissionService;
 
     @Autowired
-    public CardController(CardService cardService, UserService userService, CardMapper cardMapper) {
+    public CardController(CardService cardService, UserService userService, CardMapper cardMapper, PermissionService permissionService) {
         this.cardService = cardService;
         this.userService = userService;
         this.cardMapper = cardMapper;
+        this.permissionService = permissionService;
     }
 
-    // Создание новой карты
+    // Создание новой карты (оставляем исходную аннотацию безопасности, если потребуется доработаем позже)
     @PostMapping("/user/{userId}")
     public ResponseEntity<CardDto> createCard(@PathVariable Long userId) {
         try {
@@ -50,12 +59,23 @@ public class CardController {
         }
     }
 
-    // Получение карты по ID
+    // Получение карты по ID с ручной проверкой прав вместо SpEL
     @GetMapping("/{cardId}")
-    public ResponseEntity<CardDto> getCard(@PathVariable Long cardId) {
+    public ResponseEntity<CardDto> getCard(@PathVariable Long cardId, Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            if (authentication == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            Long userId = extractUserId(authentication.getName());
+            if (userId == null || !permissionService.isCardOwner(cardId, userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
         return cardService.getCardById(cardId)
                 .map(cardMapper::toDto)
-                .map(cardDto -> ResponseEntity.ok(cardDto))
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -182,11 +202,15 @@ public class CardController {
             @RequestParam(required = false) String ownerName,
             @RequestParam(required = false) String mask) {
         try {
+            log.debug("searchCards called with status={}, userId={}, ownerName={}, mask={}", status, userId, ownerName, mask);
             CardSearchDto searchDto = new CardSearchDto(status, userId, ownerName, mask);
             List<Card> cards = cardService.searchCards(searchDto);
+            log.debug("searchCards service returned {} cards", cards.size());
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+            log.debug("searchCards mapper produced {} DTOs", cardDtos.size());
             return ResponseEntity.ok(cardDtos);
         } catch (Exception e) {
+            log.error("Error in searchCards", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -195,10 +219,14 @@ public class CardController {
     @GetMapping("/search/mask/{mask}")
     public ResponseEntity<List<CardDto>> searchCardsByMask(@PathVariable String mask) {
         try {
+            log.debug("searchCardsByMask called with mask={}", mask);
             List<Card> cards = cardService.searchCardsByMask(mask);
+            log.debug("searchCardsByMask service returned {} cards", cards.size());
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+            log.debug("searchCardsByMask mapper produced {} DTOs", cardDtos.size());
             return ResponseEntity.ok(cardDtos);
         } catch (Exception e) {
+            log.error("Error in searchCardsByMask", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -207,10 +235,14 @@ public class CardController {
     @GetMapping("/search/owner")
     public ResponseEntity<List<CardDto>> searchCardsByOwnerName(@RequestParam String ownerName) {
         try {
+            log.debug("searchCardsByOwnerName called with ownerName={}", ownerName);
             List<Card> cards = cardService.searchCardsByOwnerName(ownerName);
+            log.debug("searchCardsByOwnerName service returned {} cards", cards.size());
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+            log.debug("searchCardsByOwnerName mapper produced {} DTOs", cardDtos.size());
             return ResponseEntity.ok(cardDtos);
         } catch (Exception e) {
+            log.error("Error in searchCardsByOwnerName", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -221,10 +253,14 @@ public class CardController {
             @RequestParam(required = false) CardStatus status,
             @RequestParam(required = false) Long userId) {
         try {
+            log.debug("searchCardsByStatusAndOwner called with status={}, userId={}", status, userId);
             List<Card> cards = cardService.searchCardsByStatusAndOwner(status, userId);
+            log.debug("searchCardsByStatusAndOwner service returned {} cards", cards.size());
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+            log.debug("searchCardsByStatusAndOwner mapper produced {} DTOs", cardDtos.size());
             return ResponseEntity.ok(cardDtos);
         } catch (Exception e) {
+            log.error("Error in searchCardsByStatusAndOwner", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -321,7 +357,7 @@ public class CardController {
         }
     }
 
-    // Поиск карт с пагинацией
+    // Поиск карт с пагинацией (POST)
     @PostMapping("/search/paginated")
     public ResponseEntity<PageResponseDto<CardDto>> searchCardsWithPagination(
             @Valid @RequestBody CardSearchDto searchDto,
@@ -388,6 +424,17 @@ public class CardController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    private Long extractUserId(String username) {
+        if (username == null) return null;
+        String digits = username.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) return null;
+        try {
+            return Long.valueOf(digits);
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

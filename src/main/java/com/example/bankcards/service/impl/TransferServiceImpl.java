@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TransferServiceImpl implements TransferService {
@@ -89,5 +90,10 @@ public class TransferServiceImpl implements TransferService {
     @Override
     public List<Transfer> getTransfersByStatus(String status) {
         return transferRepository.findByStatus(status);
+    }
+
+    @Override
+    public Optional<Transfer> getTransferById(Long id) {
+        return transferRepository.findById(id);
     }
 }
