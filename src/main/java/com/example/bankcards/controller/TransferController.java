@@ -12,6 +12,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import com.example.bankcards.security.PermissionService;
+import com.example.bankcards.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,11 +26,13 @@ public class TransferController {
     private static final Logger log = LoggerFactory.getLogger(TransferController.class);
     private final TransferService transferService;
     private final PermissionService permissionService;
+    private final SecurityUtil securityUtil;
 
     @Autowired
-    public TransferController(TransferService transferService, PermissionService permissionService) {
+    public TransferController(TransferService transferService, PermissionService permissionService, SecurityUtil securityUtil) {
         this.transferService = transferService;
         this.permissionService = permissionService;
+        this.securityUtil = securityUtil;
     }
 
     @PostMapping
@@ -76,10 +79,10 @@ public class TransferController {
         if (authentication == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        boolean isAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isAdmin = securityUtil.isAdmin();
         if (!isAdmin) {
-            Long extractedUserId = extractUserId(authentication.getName());
-            if (extractedUserId == null || !permissionService.isTransferOwner(transferId, extractedUserId)) {
+            Long currentUserId = securityUtil.getCurrentUserId();
+            if (currentUserId == null || !permissionService.isTransferOwner(transferId, currentUserId)) {
                 log.debug("Forbidden access to transfer {} by user {}", transferId, authentication.getName());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
@@ -87,16 +90,5 @@ public class TransferController {
         return transferService.getTransferById(transferId)
                 .map(t -> ResponseEntity.ok(TransferMapper.toDto(t)))
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-    private Long extractUserId(String username) {
-        if (username == null) return null;
-        String digits = username.replaceAll("[^0-9]", "");
-        if (digits.isEmpty()) return null;
-        try {
-            return Long.valueOf(digits);
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 }

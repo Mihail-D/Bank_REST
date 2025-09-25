@@ -10,6 +10,7 @@ import com.example.bankcards.exception.ErrorHandler;
 import com.example.bankcards.service.CardService;
 import com.example.bankcards.service.UserService;
 import com.example.bankcards.security.SecurityConfig;
+import com.example.bankcards.security.SecurityUtil;
 import org.springframework.context.annotation.*;
 import org.springframework.security.test.context.support.WithMockUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -77,8 +78,11 @@ class CardControllerTest {
         public com.example.bankcards.security.PermissionService permissionService() {
             com.example.bankcards.security.PermissionService mock = Mockito.mock(com.example.bankcards.security.PermissionService.class);
             Mockito.when(mock.isCardOwner(Mockito.anyLong(), Mockito.anyLong())).thenReturn(true);
+            Mockito.when(mock.canModifyCard(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyBoolean())).thenReturn(true);
             return mock;
         }
+        @Bean
+        public SecurityUtil securityUtil() { return new SecurityUtil(); }
         @Bean
         @Primary
         public ObjectMapper objectMapper() {

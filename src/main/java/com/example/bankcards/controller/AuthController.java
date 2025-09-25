@@ -56,7 +56,7 @@ public class AuthController {
         return userService.findByUsername(request.getUsername())
                 .map(user -> {
                     if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                        String token = jwtService.generateToken(user.getUsername(), user.getRole());
+                        String token = jwtService.generateToken(user); // новый метод с userId
                         return ResponseEntity.ok(java.util.Collections.singletonMap("token", token));
                     } else {
                         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("");
