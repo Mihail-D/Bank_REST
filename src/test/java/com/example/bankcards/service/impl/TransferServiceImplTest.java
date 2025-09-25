@@ -9,6 +9,7 @@ import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.security.SecurityUtil;
+import com.example.bankcards.exception.CardStatusException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,11 +51,13 @@ class TransferServiceImplTest {
         fromCard.setId(10L);
         fromCard.setUser(user);
         fromCard.setStatus(CardStatus.ACTIVE);
+        fromCard.setExpirationDate(LocalDate.now().plusYears(1));
         fromCard.setBalance(new BigDecimal("100.00"));
         toCard = new Card();
         toCard.setId(20L);
         toCard.setUser(user);
         toCard.setStatus(CardStatus.ACTIVE);
+        toCard.setExpirationDate(LocalDate.now().plusYears(1));
         toCard.setBalance(new BigDecimal("50.00"));
     }
 
@@ -84,7 +88,7 @@ class TransferServiceImplTest {
         fromCard.setStatus(CardStatus.BLOCKED);
         when(cardRepository.findById(10L)).thenReturn(Optional.of(fromCard));
         when(cardRepository.findById(20L)).thenReturn(Optional.of(toCard));
-        assertThrows(IllegalStateException.class, () ->
+        assertThrows(CardStatusException.class, () ->
                 transferService.createTransfer(10L, 20L, new BigDecimal("10.00"), 1L));
     }
 

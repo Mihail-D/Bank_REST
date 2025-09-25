@@ -5,9 +5,61 @@ info:
   description: |
     API для управления банковскими картами и переводами.
     Политика шаг B: для переводов возвращаются только исходящие переводы (sourceCard) пользователя / карты.
+    Добавлено управление статусами карт (BLOCKED / EXPIRED) и автоматическое истечение.
 servers:
   - url: http://localhost:8080
 paths:
+  /api/cards/{cardId}/block:
+    put:
+      summary: Заблокировать карту
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Карта заблокирована
+        '400':
+          description: Ошибка (уже заблокирована или иная валидация)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Нет прав (не владелец и не админ)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Карта не найдена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+  /api/cards/{cardId}/unblock:
+    put:
+      summary: Разблокировать карту (только ADMIN)
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Карта разблокирована }
+        '403':
+          description: Нет прав (не админ)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Карта не найдена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '422':
+          description: Неверный статус (EXPIRED / ACTIVE)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
   /api/transfers:
     post:
       summary: Создать перевод между картами
@@ -38,17 +90,22 @@ paths:
           description: Ошибка валидации (некорректные параметры, отрицательная сумма и т.п.)
           content:
             application/json:
-              schema: { type: string }
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '403':
           description: Пользователь не имеет права инициировать перевод от имени другого
           content:
             application/json:
-              schema: { type: string }
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '404':
           description: Карта не найдена
           content:
             application/json:
-              schema: { type: string }
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '422':
+          description: Карта в статусе BLOCKED или EXPIRED (CARD_STATUS_INVALID)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
   /api/transfers/user/{userId}:
     get:
       summary: Получить исходящие переводы указанного пользователя
@@ -174,4 +231,3 @@ components:
           type: string
         path:
           type: string
-

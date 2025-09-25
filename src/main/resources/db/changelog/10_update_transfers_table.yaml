@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: 10-rename-transfers-from-column
+      author: copilot
+      preConditions:
+        onFail: MARK_RAN
+        onError: MARK_RAN
+        - and:
+            - tableExists:
+                tableName: transfers
+            - columnExists:
+                tableName: transfers
+                columnName: source_card_id
+      changes:
+        - renameColumn:
+            tableName: transfers
+            oldColumnName: source_card_id
+            newColumnName: from_card_id
+            columnDataType: BIGINT
+  - changeSet:
+      id: 10-rename-transfers-to-column
+      author: copilot
+      preConditions:
+        onFail: MARK_RAN
+        onError: MARK_RAN
+        - and:
+            - tableExists:
+                tableName: transfers
+            - columnExists:
+                tableName: transfers
+                columnName: destination_card_id
+      changes:
+        - renameColumn:
+            tableName: transfers
+            oldColumnName: destination_card_id
+            newColumnName: to_card_id
+            columnDataType: BIGINT

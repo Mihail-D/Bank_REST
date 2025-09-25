@@ -3,6 +3,9 @@ package com.example.bankcards.service.impl;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.History;
 import com.example.bankcards.entity.Transfer;
+import com.example.bankcards.entity.CardStatus;
+import com.example.bankcards.entity.HistoryEventType;
+import com.example.bankcards.exception.CardStatusException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.repository.TransferRepository;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,23 +56,23 @@ public class TransferServiceImpl implements TransferService {
                 .orElseThrow(() -> new EntityNotFoundException("Source card not found"));
         Card toCard = cardRepository.findById(toCardId)
                 .orElseThrow(() -> new EntityNotFoundException("Destination card not found"));
-        // Валидация прав пользователя, статуса карт, баланса
+
+        // Проверка владения исходной картой
         if (!fromCard.getUser().getId().equals(userId) && !securityUtil.isAdmin()) {
             throw new SecurityException("User does not own the source card");
         }
-        if (fromCard.getStatus() != com.example.bankcards.entity.CardStatus.ACTIVE ||
-            toCard.getStatus() != com.example.bankcards.entity.CardStatus.ACTIVE) {
-            throw new IllegalStateException("Одна из карт неактивна");
-        }
+        validateCardUsable(fromCard, "Исходная карта недоступна для перевода");
+        validateCardUsable(toCard, "Целевая карта недоступна для перевода");
+
         if (fromCard.getBalance().compareTo(amount) < 0) {
             throw new IllegalArgumentException("Недостаточно средств на карте");
         }
-        // Списание и зачисление
+
         fromCard.setBalance(fromCard.getBalance().subtract(amount));
         toCard.setBalance(toCard.getBalance().add(amount));
         cardRepository.save(fromCard);
         cardRepository.save(toCard);
-        // Создание перевода
+
         Transfer transfer = new Transfer();
         transfer.setSourceCard(fromCard);
         transfer.setDestinationCard(toCard);
@@ -76,9 +80,9 @@ public class TransferServiceImpl implements TransferService {
         transfer.setTransferDate(LocalDateTime.now());
         transfer.setStatus("SUCCESS");
         Transfer savedTransfer = transferRepository.save(transfer);
-        // Аудит перевода
+
         History history = new History();
-        history.setEventType("TRANSFER");
+        history.setEventType(HistoryEventType.TRANSFER);
         history.setEventDate(LocalDateTime.now());
         history.setDescription("Перевод с карты " + fromCardId + " на карту " + toCardId + " на сумму " + amount);
         history.setUser(fromCard.getUser());
@@ -86,6 +90,18 @@ public class TransferServiceImpl implements TransferService {
         history.setTransfer(savedTransfer);
         historyRepository.save(history);
         return savedTransfer;
+    }
+
+    private void validateCardUsable(Card card, String baseMsg) {
+        if (card.getStatus() == CardStatus.BLOCKED) {
+            throw new CardStatusException(baseMsg + ": статус BLOCKED");
+        }
+        if (card.getStatus() == CardStatus.EXPIRED || card.getExpirationDate().isBefore(LocalDate.now())) {
+            throw new CardStatusException(baseMsg + ": карта истекла");
+        }
+        if (card.getStatus() != CardStatus.ACTIVE) {
+            throw new CardStatusException(baseMsg + ": статус " + card.getStatus());
+        }
     }
 
     @Override

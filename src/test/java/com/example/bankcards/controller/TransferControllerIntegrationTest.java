@@ -130,6 +130,6 @@ class TransferControllerIntegrationTest {
                 .header("Authorization", "Bearer " + jwtToken)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().is4xxClientError())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Одна из карт неактивна")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("статус BLOCKED")));
     }
 }

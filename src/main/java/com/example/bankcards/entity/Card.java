@@ -16,14 +16,14 @@ public class Card {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(name = "encrypted_number", nullable = false, unique = true, length = 255)
     private String encryptedNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private CardStatus status;
 
-    @Column(nullable = false)
+    @Column(name = "expiration_date", nullable = false)
     private LocalDate expirationDate;
 
     @Column(nullable = false)

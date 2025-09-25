@@ -120,8 +120,6 @@ public class CardController {
     public ResponseEntity<CardDto> blockCard(@PathVariable Long cardId) {
         var cardOpt = cardService.getCardById(cardId);
         if (cardOpt.isEmpty()) return ResponseEntity.notFound().build();
-        var card = cardOpt.get();
-        Long ownerId = card.getUser() != null ? card.getUser().getId() : null;
         if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
             throw new AccessDeniedException("Доступ запрещён");
         }
@@ -132,6 +130,18 @@ public class CardController {
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    // Разблокировка карты (только ADMIN)
+    @PutMapping("/{cardId}/unblock")
+    public ResponseEntity<CardDto> unblockCard(@PathVariable Long cardId) {
+        var cardOpt = cardService.getCardById(cardId);
+        if (cardOpt.isEmpty()) return ResponseEntity.notFound().build();
+        if (!securityUtil.isAdmin()) {
+            throw new AccessDeniedException("Доступ запрещён: только ADMIN может разблокировать карту");
+        }
+        Card unblocked = cardService.unblockCard(cardId);
+        return ResponseEntity.ok(cardMapper.toDto(unblocked));
     }
 
     // Активация карты

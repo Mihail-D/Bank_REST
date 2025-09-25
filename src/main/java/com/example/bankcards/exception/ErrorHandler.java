@@ -30,6 +30,13 @@ public class ErrorHandler {
                 .body(ErrorResponse.of(400, "BAD_REQUEST", ex.getMessage(), req.getRequestURI()));
     }
 
+    @ExceptionHandler(CardStatusException.class)
+    public ResponseEntity<ErrorResponse> handleCardStatus(CardStatusException ex, HttpServletRequest req) {
+        log.debug("Card status error: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ErrorResponse.of(422, "CARD_STATUS_INVALID", ex.getMessage(), req.getRequestURI()));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest req) {
         log.debug("Access denied: {}", ex.getMessage());

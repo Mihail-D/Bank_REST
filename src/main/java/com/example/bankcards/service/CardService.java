@@ -35,6 +35,7 @@ public interface CardService {
 
     // Операции управления картой
     Card blockCard(Long cardId);
+    Card unblockCard(Long cardId); // новый метод
     Card activateCard(Long cardId);
     Card deactivateCard(Long cardId);
     void deleteCard(Long cardId);

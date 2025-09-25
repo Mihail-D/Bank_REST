@@ -4,7 +4,11 @@ import com.example.bankcards.dto.CardSearchDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
+import com.example.bankcards.entity.History;
+import com.example.bankcards.entity.HistoryEventType;
+import com.example.bankcards.exception.CardStatusException;
 import com.example.bankcards.repository.CardRepository;
+import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.service.CardEncryptionService;
 import com.example.bankcards.service.CardNumberGenerator;
 import com.example.bankcards.service.CardService;
@@ -19,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -30,13 +35,15 @@ public class CardServiceImpl implements CardService {
     private final CardNumberGenerator cardNumberGenerator;
     private final CardEncryptionService cardEncryptionService;
     private final SecurityUtil securityUtil; // новый
+    private final HistoryRepository historyRepository; // аудит
 
     @Autowired
-    public CardServiceImpl(CardRepository cardRepository, CardNumberGenerator cardNumberGenerator, CardEncryptionService cardEncryptionService, SecurityUtil securityUtil) {
+    public CardServiceImpl(CardRepository cardRepository, CardNumberGenerator cardNumberGenerator, CardEncryptionService cardEncryptionService, SecurityUtil securityUtil, HistoryRepository historyRepository) {
         this.cardRepository = cardRepository;
         this.cardNumberGenerator = cardNumberGenerator;
         this.cardEncryptionService = cardEncryptionService;
         this.securityUtil = securityUtil;
+        this.historyRepository = historyRepository;
     }
 
     @Override
@@ -110,8 +117,36 @@ public class CardServiceImpl implements CardService {
         if (card.getStatus() == CardStatus.BLOCKED) {
             throw new IllegalStateException("Карта уже заблокирована");
         }
+        if (card.getStatus() == CardStatus.EXPIRED) {
+            throw new CardStatusException("Нельзя заблокировать истекшую карту");
+        }
         card.setStatus(CardStatus.BLOCKED);
-        return cardRepository.save(card);
+        Card saved = cardRepository.save(card);
+        recordHistory(HistoryEventType.CARD_BLOCKED, saved, "Карта заблокирована");
+        return saved;
+    }
+
+    @Override
+    public Card unblockCard(Long cardId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
+        // Только админ
+        if (!securityUtil.isAdmin()) {
+            throw new AccessDeniedException("Доступ запрещён: разблокировка только для ADMIN");
+        }
+        if (card.getStatus() == CardStatus.EXPIRED) {
+            throw new CardStatusException("Нельзя разблокировать истекшую карту");
+        }
+        if (card.getStatus() == CardStatus.ACTIVE) {
+            throw new CardStatusException("Карта уже активна");
+        }
+        if (card.getStatus() != CardStatus.BLOCKED) {
+            throw new CardStatusException("Карта не в статусе BLOCKED");
+        }
+        card.setStatus(CardStatus.ACTIVE);
+        Card saved = cardRepository.save(card);
+        recordHistory(HistoryEventType.CARD_UNBLOCKED, saved, "Карта разблокирована администратором");
+        return saved;
     }
 
     @Override
@@ -123,7 +158,9 @@ public class CardServiceImpl implements CardService {
             throw new IllegalStateException("Нельзя активировать просроченную карту");
         }
         card.setStatus(CardStatus.ACTIVE);
-        return cardRepository.save(card);
+        Card saved = cardRepository.save(card);
+        recordHistory(HistoryEventType.CARD_ACTIVATED, saved, "Карта активирована");
+        return saved;
     }
 
     @Override
@@ -132,7 +169,9 @@ public class CardServiceImpl implements CardService {
                 .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
         assertCanModify(cardId, card);
         card.setStatus(CardStatus.BLOCKED);
-        return cardRepository.save(card);
+        Card saved = cardRepository.save(card);
+        recordHistory(HistoryEventType.CARD_BLOCKED, saved, "Карта деактивирована (BLOCKED)");
+        return saved;
     }
 
     @Override
@@ -151,6 +190,7 @@ public class CardServiceImpl implements CardService {
         Card newCard = createCard(oldCard.getUser());
         oldCard.setStatus(CardStatus.EXPIRED);
         cardRepository.save(oldCard);
+        recordHistory(HistoryEventType.CARD_EXPIRED, oldCard, "Карта отмечена как истекшая при перевыпуске");
         return newCard;
     }
 
@@ -290,7 +330,7 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional(readOnly = true)
     public Page<Card> searchCardsWithPagination(CardSearchDto searchDto, Pageable pageable) {
-        Specification<Card> spec = Specification.where(null);
+        Specification<Card> spec = (root, query, cb) -> cb.conjunction();
 
         if (searchDto.getStatus() != null) {
             spec = spec.and(CardSpecification.hasStatus(searchDto.getStatus()));
@@ -324,16 +364,13 @@ public class CardServiceImpl implements CardService {
                     try {
                         String decrypted = cardEncryptionService.decrypt(card.getEncryptedNumber());
                         String maskedNumber = cardEncryptionService.mask(decrypted);
-
                         // Поиск по последним 4 цифрам
                         if (searchMask.length() == 4 && searchMask.matches("\\d{4}")) {
                             return maskedNumber.endsWith(searchMask);
                         }
-
-                        // Поиск по полной маске
+                        // По полной маске
                         return maskedNumber.contains(searchMask);
                     } catch (Exception e) {
-                        // Если не удается расшифровать, исключаем карту из результата
                         return false;
                     }
                 })
@@ -351,6 +388,20 @@ public class CardServiceImpl implements CardService {
         Long ownerId = card.getUser() != null ? card.getUser().getId() : null;
         if (currentId == null || ownerId == null || !ownerId.equals(currentId)) {
             throw new AccessDeniedException("Доступ запрещён: нельзя изменять чужую карту");
+        }
+    }
+
+    private void recordHistory(String eventType, Card card, String description) {
+        try {
+            History history = new History();
+            history.setEventType(eventType);
+            history.setEventDate(LocalDateTime.now());
+            history.setDescription(description);
+            history.setCard(card);
+            history.setUser(card.getUser());
+            historyRepository.save(history);
+        } catch (Exception ignored) {
+            // не прерываем основную операцию если аудит не записался
         }
     }
 }
