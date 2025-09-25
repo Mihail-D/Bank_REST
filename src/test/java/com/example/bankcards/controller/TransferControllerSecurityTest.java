@@ -3,6 +3,7 @@ package com.example.bankcards.controller;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.Transfer;
 import com.example.bankcards.entity.User;
+import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.security.PermissionService;
 import com.example.bankcards.security.SecurityConfig;
 import com.example.bankcards.security.SecurityUtil;
@@ -15,7 +16,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -55,6 +55,8 @@ class TransferControllerSecurityTest {
         public SecurityUtil securityUtil() {
             return new SecurityUtil();
         }
+        @Bean
+        public CardRepository cardRepository() { return Mockito.mock(CardRepository.class); }
     }
 
     @BeforeEach
