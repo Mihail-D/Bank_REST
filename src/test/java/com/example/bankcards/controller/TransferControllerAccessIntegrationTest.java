@@ -134,6 +134,25 @@ class TransferControllerAccessIntegrationTest {
                 .andExpect(jsonPath("$", hasSize(3))); // all transfers
     }
 
+    @Test
+    void adminGetsCardTransfers_onlyOutgoing() throws Exception {
+        mockMvc.perform(get("/api/transfers/card/" + user1CardA.getId())
+                .header("Authorization", "Bearer " + tokenAdmin)
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                // только 2 исходящих перевода с этой карты (входящий из user2CardA -> user1CardA не включается)
+                .andExpect(jsonPath("$", hasSize(2)));
+    }
+
+    @Test
+    void cardNotFoundReturns404() throws Exception {
+        Long nonExistingId = 999999L;
+        mockMvc.perform(get("/api/transfers/card/" + nonExistingId)
+                .header("Authorization", "Bearer " + tokenAdmin)
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
     private User buildUser(String username, String email, Role role) {
         User u = new User();
         u.setName(username);
@@ -164,4 +183,3 @@ class TransferControllerAccessIntegrationTest {
         return transferRepository.save(t);
     }
 }
-

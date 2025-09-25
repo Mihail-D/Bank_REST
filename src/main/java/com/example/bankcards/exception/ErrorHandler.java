@@ -11,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.persistence.EntityNotFoundException;
 
 @ControllerAdvice
 public class ErrorHandler {
@@ -55,5 +56,12 @@ public class ErrorHandler {
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(500, "INTERNAL_SERVER_ERROR", "Внутренняя ошибка сервера", req.getRequestURI()));
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleJpaNotFound(EntityNotFoundException ex, HttpServletRequest req) {
+        log.debug("Entity not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(404, "NOT_FOUND", ex.getMessage(), req.getRequestURI()));
     }
 }

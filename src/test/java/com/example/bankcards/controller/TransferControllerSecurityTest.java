@@ -7,6 +7,7 @@ import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.security.PermissionService;
 import com.example.bankcards.security.SecurityConfig;
 import com.example.bankcards.security.SecurityUtil;
+import com.example.bankcards.service.TransferFilter;
 import com.example.bankcards.service.TransferService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,8 @@ class TransferControllerSecurityTest {
         }
         @Bean
         public CardRepository cardRepository() { return Mockito.mock(CardRepository.class); }
+        @Bean
+        public TransferFilter transferFilter() { return new TransferFilter(); }
     }
 
     @BeforeEach
