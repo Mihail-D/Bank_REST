@@ -9,10 +9,12 @@ import com.example.bankcards.service.CardEncryptionService;
 import com.example.bankcards.service.CardNumberGenerator;
 import com.example.bankcards.service.CardService;
 import com.example.bankcards.specification.CardSpecification;
+import com.example.bankcards.security.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,16 +29,25 @@ public class CardServiceImpl implements CardService {
     private final CardRepository cardRepository;
     private final CardNumberGenerator cardNumberGenerator;
     private final CardEncryptionService cardEncryptionService;
+    private final SecurityUtil securityUtil; // новый
 
     @Autowired
-    public CardServiceImpl(CardRepository cardRepository, CardNumberGenerator cardNumberGenerator, CardEncryptionService cardEncryptionService) {
+    public CardServiceImpl(CardRepository cardRepository, CardNumberGenerator cardNumberGenerator, CardEncryptionService cardEncryptionService, SecurityUtil securityUtil) {
         this.cardRepository = cardRepository;
         this.cardNumberGenerator = cardNumberGenerator;
         this.cardEncryptionService = cardEncryptionService;
+        this.securityUtil = securityUtil;
     }
 
     @Override
     public Card createCard(User user) {
+        // Guard: пользователь может создать карту только для себя, если не админ
+        if (!securityUtil.isAdmin()) {
+            Long currentId = securityUtil.getCurrentUserId();
+            if (currentId == null || user.getId() == null || !user.getId().equals(currentId)) {
+                throw new AccessDeniedException("Доступ запрещён: нельзя создать карту для другого пользователя");
+            }
+        }
         Card card = new Card();
         card.setUser(user);
         String plainNumber = cardNumberGenerator.generateUniqueCardNumber();
@@ -95,11 +106,10 @@ public class CardServiceImpl implements CardService {
     public Card blockCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
-
+        assertCanModify(cardId, card);
         if (card.getStatus() == CardStatus.BLOCKED) {
             throw new IllegalStateException("Карта уже заблокирована");
         }
-
         card.setStatus(CardStatus.BLOCKED);
         return cardRepository.save(card);
     }
@@ -108,11 +118,10 @@ public class CardServiceImpl implements CardService {
     public Card activateCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
-
+        assertCanModify(cardId, card);
         if (isCardExpired(card)) {
             throw new IllegalStateException("Нельзя активировать просроченную карту");
         }
-
         card.setStatus(CardStatus.ACTIVE);
         return cardRepository.save(card);
     }
@@ -121,7 +130,7 @@ public class CardServiceImpl implements CardService {
     public Card deactivateCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
-
+        assertCanModify(cardId, card);
         card.setStatus(CardStatus.BLOCKED);
         return cardRepository.save(card);
     }
@@ -130,8 +139,19 @@ public class CardServiceImpl implements CardService {
     public void deleteCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
-
+        assertCanModify(cardId, card);
         cardRepository.delete(card);
+    }
+
+    @Override
+    public Card renewCard(Long cardId) {
+        Card oldCard = cardRepository.findById(cardId)
+                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
+        assertCanModify(cardId, oldCard);
+        Card newCard = createCard(oldCard.getUser());
+        oldCard.setStatus(CardStatus.EXPIRED);
+        cardRepository.save(oldCard);
+        return newCard;
     }
 
     // Проверки статуса
@@ -166,21 +186,6 @@ public class CardServiceImpl implements CardService {
         return cardRepository.findById(cardId)
                 .map(card -> card.getStatus() == CardStatus.ACTIVE && !isCardExpired(card))
                 .orElse(false);
-    }
-
-    @Override
-    public Card renewCard(Long cardId) {
-        Card oldCard = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
-
-        // Создаем новую карту для того же пользователя
-        Card newCard = createCard(oldCard.getUser());
-
-        // Блокируем старую карту
-        oldCard.setStatus(CardStatus.EXPIRED);
-        cardRepository.save(oldCard);
-
-        return newCard;
     }
 
     // Методы поиска
@@ -338,5 +343,14 @@ public class CardServiceImpl implements CardService {
     // Вспомогательные методы
     private boolean isCardExpired(Card card) {
         return card.getExpirationDate().isBefore(LocalDate.now());
+    }
+
+    private void assertCanModify(Long cardId, Card card) {
+        if (securityUtil.isAdmin()) return;
+        Long currentId = securityUtil.getCurrentUserId();
+        Long ownerId = card.getUser() != null ? card.getUser().getId() : null;
+        if (currentId == null || ownerId == null || !ownerId.equals(currentId)) {
+            throw new AccessDeniedException("Доступ запрещён: нельзя изменять чужую карту");
+        }
     }
 }

@@ -8,6 +8,7 @@ import com.example.bankcards.entity.User;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.repository.TransferRepository;
+import com.example.bankcards.security.SecurityUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -28,6 +29,8 @@ class TransferServiceImplTest {
     private CardRepository cardRepository;
     @Mock
     private HistoryRepository historyRepository;
+    @Mock
+    private SecurityUtil securityUtil;
     @InjectMocks
     private TransferServiceImpl transferService;
 
@@ -38,6 +41,8 @@ class TransferServiceImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(securityUtil.isAdmin()).thenReturn(false);
+        when(securityUtil.getCurrentUserId()).thenReturn(1L);
         user = new User();
         user.setId(1L);
         fromCard = new Card();

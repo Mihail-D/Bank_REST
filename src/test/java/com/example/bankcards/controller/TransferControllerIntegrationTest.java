@@ -58,8 +58,8 @@ class TransferControllerIntegrationTest {
         user.setPassword("pass");
         user.setActive(true);
         user.setRole(Role.USER);
-        user = userRepository.save(user); // Сохраняем пользователя и получаем id
-        jwtToken = jwtService.generateToken(user.getUsername(), user.getRole());
+        user = userRepository.save(user); // persist to get id
+        jwtToken = jwtService.generateToken(user); // новый метод с userId claim
         fromCard = new Card();
         fromCard.setEncryptedNumber("enc1");
         fromCard.setStatus(CardStatus.ACTIVE);

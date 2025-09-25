@@ -8,6 +8,7 @@ import com.example.bankcards.service.CardService;
 import com.example.bankcards.service.UserService;
 import com.example.bankcards.util.PageableUtils;
 import com.example.bankcards.security.PermissionService;
+import com.example.bankcards.security.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,13 +33,15 @@ public class CardController {
     private final UserService userService;
     private final CardMapper cardMapper;
     private final PermissionService permissionService;
+    private final SecurityUtil securityUtil; // новый компонент
 
     @Autowired
-    public CardController(CardService cardService, UserService userService, CardMapper cardMapper, PermissionService permissionService) {
+    public CardController(CardService cardService, UserService userService, CardMapper cardMapper, PermissionService permissionService, SecurityUtil securityUtil) {
         this.cardService = cardService;
         this.userService = userService;
         this.cardMapper = cardMapper;
         this.permissionService = permissionService;
+        this.securityUtil = securityUtil;
     }
 
     // Создание новой карты (оставляем исходную аннотацию безопасности, если потребуется доработаем позже)
@@ -62,16 +65,13 @@ public class CardController {
     // Получение карты по ID с ручной проверкой прав вместо SpEL
     @GetMapping("/{cardId}")
     public ResponseEntity<CardDto> getCard(@PathVariable Long cardId, Authentication authentication) {
-        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        if (!isAdmin) {
-            if (authentication == null) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-            Long userId = extractUserId(authentication.getName());
-            if (userId == null || !permissionService.isCardOwner(cardId, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        boolean isAdmin = securityUtil.isAdmin();
+        Long currentUserId = securityUtil.getCurrentUserId();
+        if (!isAdmin && (currentUserId == null || !permissionService.isCardOwner(cardId, currentUserId))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return cardService.getCardById(cardId)
                 .map(cardMapper::toDto)
@@ -118,12 +118,17 @@ public class CardController {
     // Блокировка карты
     @PutMapping("/{cardId}/block")
     public ResponseEntity<CardDto> blockCard(@PathVariable Long cardId) {
+        var cardOpt = cardService.getCardById(cardId);
+        if (cardOpt.isEmpty()) return ResponseEntity.notFound().build();
+        var card = cardOpt.get();
+        Long ownerId = card.getUser() != null ? card.getUser().getId() : null;
+        if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
+            throw new AccessDeniedException("Доступ запрещён");
+        }
         try {
             Card blockedCard = cardService.blockCard(cardId);
             CardDto cardDto = cardMapper.toDto(blockedCard);
             return ResponseEntity.ok(cardDto);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -132,12 +137,15 @@ public class CardController {
     // Активация карты
     @PutMapping("/{cardId}/activate")
     public ResponseEntity<CardDto> activateCard(@PathVariable Long cardId) {
+        var cardOpt = cardService.getCardById(cardId);
+        if (cardOpt.isEmpty()) return ResponseEntity.notFound().build();
+        if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
+            throw new AccessDeniedException("Доступ запрещён");
+        }
         try {
             Card activatedCard = cardService.activateCard(cardId);
             CardDto cardDto = cardMapper.toDto(activatedCard);
             return ResponseEntity.ok(cardDto);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -146,36 +154,39 @@ public class CardController {
     // Деактивация карты
     @PutMapping("/{cardId}/deactivate")
     public ResponseEntity<CardDto> deactivateCard(@PathVariable Long cardId) {
-        try {
-            Card deactivatedCard = cardService.deactivateCard(cardId);
-            CardDto cardDto = cardMapper.toDto(deactivatedCard);
-            return ResponseEntity.ok(cardDto);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        var cardOpt = cardService.getCardById(cardId);
+        if (cardOpt.isEmpty()) return ResponseEntity.notFound().build();
+        if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
+            throw new AccessDeniedException("Доступ запрещён");
         }
+        Card deactivatedCard = cardService.deactivateCard(cardId);
+        CardDto cardDto = cardMapper.toDto(deactivatedCard);
+        return ResponseEntity.ok(cardDto);
     }
 
     // Перевыпуск карты
     @PostMapping("/{cardId}/renew")
     public ResponseEntity<CardDto> renewCard(@PathVariable Long cardId) {
-        try {
-            Card renewedCard = cardService.renewCard(cardId);
-            CardDto cardDto = cardMapper.toDto(renewedCard);
-            return ResponseEntity.status(HttpStatus.CREATED).body(cardDto);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        var cardOpt = cardService.getCardById(cardId);
+        if (cardOpt.isEmpty()) return ResponseEntity.notFound().build();
+        if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
+            throw new AccessDeniedException("Доступ запрещён");
         }
+        Card renewedCard = cardService.renewCard(cardId);
+        CardDto cardDto = cardMapper.toDto(renewedCard);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cardDto);
     }
 
     // Удаление карты
     @DeleteMapping("/{cardId}")
     public ResponseEntity<Void> deleteCard(@PathVariable Long cardId) {
-        try {
-            cardService.deleteCard(cardId);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        var cardOpt = cardService.getCardById(cardId);
+        if (cardOpt.isEmpty()) return ResponseEntity.notFound().build();
+        if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
+            throw new AccessDeniedException("Доступ запрещён");
         }
+        cardService.deleteCard(cardId);
+        return ResponseEntity.noContent().build();
     }
 
     // Проверка статуса карты
@@ -202,15 +213,17 @@ public class CardController {
             @RequestParam(required = false) String ownerName,
             @RequestParam(required = false) String mask) {
         try {
-            log.debug("searchCards called with status={}, userId={}, ownerName={}, mask={}", status, userId, ownerName, mask);
-            CardSearchDto searchDto = new CardSearchDto(status, userId, ownerName, mask);
+            boolean isAdmin = securityUtil.isAdmin();
+            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
+            CardSearchDto searchDto = new CardSearchDto(status, effectiveUserId, ownerName, mask);
             List<Card> cards = cardService.searchCards(searchDto);
-            log.debug("searchCards service returned {} cards", cards.size());
+            if (!isAdmin) {
+                Long currentId = securityUtil.getCurrentUserId();
+                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
+            }
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            log.debug("searchCards mapper produced {} DTOs", cardDtos.size());
             return ResponseEntity.ok(cardDtos);
         } catch (Exception e) {
-            log.error("Error in searchCards", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -219,14 +232,15 @@ public class CardController {
     @GetMapping("/search/mask/{mask}")
     public ResponseEntity<List<CardDto>> searchCardsByMask(@PathVariable String mask) {
         try {
-            log.debug("searchCardsByMask called with mask={}", mask);
+            boolean isAdmin = securityUtil.isAdmin();
             List<Card> cards = cardService.searchCardsByMask(mask);
-            log.debug("searchCardsByMask service returned {} cards", cards.size());
+            if (!isAdmin) {
+                Long currentId = securityUtil.getCurrentUserId();
+                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
+            }
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            log.debug("searchCardsByMask mapper produced {} DTOs", cardDtos.size());
             return ResponseEntity.ok(cardDtos);
         } catch (Exception e) {
-            log.error("Error in searchCardsByMask", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -235,14 +249,15 @@ public class CardController {
     @GetMapping("/search/owner")
     public ResponseEntity<List<CardDto>> searchCardsByOwnerName(@RequestParam String ownerName) {
         try {
-            log.debug("searchCardsByOwnerName called with ownerName={}", ownerName);
+            boolean isAdmin = securityUtil.isAdmin();
             List<Card> cards = cardService.searchCardsByOwnerName(ownerName);
-            log.debug("searchCardsByOwnerName service returned {} cards", cards.size());
+            if (!isAdmin) {
+                Long currentId = securityUtil.getCurrentUserId();
+                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
+            }
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            log.debug("searchCardsByOwnerName mapper produced {} DTOs", cardDtos.size());
             return ResponseEntity.ok(cardDtos);
         } catch (Exception e) {
-            log.error("Error in searchCardsByOwnerName", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -253,14 +268,16 @@ public class CardController {
             @RequestParam(required = false) CardStatus status,
             @RequestParam(required = false) Long userId) {
         try {
-            log.debug("searchCardsByStatusAndOwner called with status={}, userId={}", status, userId);
-            List<Card> cards = cardService.searchCardsByStatusAndOwner(status, userId);
-            log.debug("searchCardsByStatusAndOwner service returned {} cards", cards.size());
+            boolean isAdmin = securityUtil.isAdmin();
+            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
+            List<Card> cards = cardService.searchCardsByStatusAndOwner(status, effectiveUserId);
+            if (!isAdmin) {
+                Long currentId = securityUtil.getCurrentUserId();
+                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
+            }
             List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            log.debug("searchCardsByStatusAndOwner mapper produced {} DTOs", cardDtos.size());
             return ResponseEntity.ok(cardDtos);
         } catch (Exception e) {
-            log.error("Error in searchCardsByStatusAndOwner", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -399,18 +416,22 @@ public class CardController {
             @RequestParam(defaultValue = "asc") String sortDirection) {
 
         try {
+            boolean isAdmin = securityUtil.isAdmin();
+            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
             CardSearchDto searchDto = new CardSearchDto();
             searchDto.setStatus(status);
-            searchDto.setUserId(userId);
+            searchDto.setUserId(effectiveUserId);
             searchDto.setOwnerName(ownerName);
             searchDto.setIsExpired(isExpired);
             searchDto.setMask(mask);
-
             Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
             Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
+            List<Card> content = cardPage.getContent();
+            if (!isAdmin) {
+                Long currentId = securityUtil.getCurrentUserId();
+                content = content.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
+            }
+            List<CardDto> cardDtos = cardMapper.toDtoList(content);
             PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
@@ -420,21 +441,9 @@ public class CardController {
                 cardPage.isFirst(),
                 cardPage.isLast()
             );
-
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
-        }
-    }
-
-    private Long extractUserId(String username) {
-        if (username == null) return null;
-        String digits = username.replaceAll("[^0-9]", "");
-        if (digits.isEmpty()) return null;
-        try {
-            return Long.valueOf(digits);
-        } catch (NumberFormatException e) {
-            return null;
         }
     }
 

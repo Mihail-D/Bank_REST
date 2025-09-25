@@ -1,1 +1,177 @@
-# Здесь будет OpenAPI описание всех доступных эндпоинтов и моделей данных.
+openapi: 3.0.3
+info:
+  title: Bank Cards API
+  version: 1.0.0
+  description: |
+    API для управления банковскими картами и переводами.
+    Политика шаг B: для переводов возвращаются только исходящие переводы (sourceCard) пользователя / карты.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/transfers:
+    post:
+      summary: Создать перевод между картами
+      parameters:
+        - in: query
+          name: fromCardId
+          required: true
+          schema: { type: integer, format: int64 }
+        - in: query
+          name: toCardId
+          required: true
+          schema: { type: integer, format: int64 }
+        - in: query
+          name: amount
+          required: true
+          schema: { type: number, format: decimal }
+        - in: query
+          name: userId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Перевод успешно создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferDto' }
+        '400':
+          description: Ошибка валидации (некорректные параметры, отрицательная сумма и т.п.)
+          content:
+            application/json:
+              schema: { type: string }
+        '403':
+          description: Пользователь не имеет права инициировать перевод от имени другого
+          content:
+            application/json:
+              schema: { type: string }
+        '404':
+          description: Карта не найдена
+          content:
+            application/json:
+              schema: { type: string }
+  /api/transfers/user/{userId}:
+    get:
+      summary: Получить исходящие переводы указанного пользователя
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Список исходящих переводов пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TransferDto' }
+        '403':
+          description: Доступ запрещён для просмотра переводов другого пользователя
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+  /api/transfers/card/{cardId}:
+    get:
+      summary: Получить исходящие переводы по карте
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Список исходящих переводов карты
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TransferDto' }
+        '403':
+          description: Доступ запрещён (чужая карта)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Карта не найдена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+  /api/transfers/status/{status}:
+    get:
+      summary: Получить исходящие переводы по статусу (фильтрация по текущему пользователю; админ видит исходящие всех)
+      parameters:
+        - in: path
+          name: status
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Список переводов по статусу
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TransferDto' }
+  /api/transfers/{transferId}:
+    get:
+      summary: Получить перевод по id
+      parameters:
+        - in: path
+          name: transferId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Перевод найден
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferDto' }
+        '401':
+          description: Требуется аутентификация
+        '403':
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Перевод не найден
+components:
+  schemas:
+    TransferDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        fromCardId:
+          type: integer
+          format: int64
+          description: Идентификатор исходной (source) карты
+        toCardId:
+          type: integer
+          format: int64
+          description: Идентификатор целевой (destination) карты
+        amount:
+          type: number
+          format: double
+        transferDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          description: Статус (например SUCCESS)
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+

@@ -6,9 +6,11 @@ import com.example.bankcards.entity.Transfer;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.repository.TransferRepository;
+import com.example.bankcards.security.SecurityUtil;
 import com.example.bankcards.service.TransferService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +27,19 @@ public class TransferServiceImpl implements TransferService {
     private CardRepository cardRepository;
     @Autowired
     private HistoryRepository historyRepository;
+    @Autowired
+    private SecurityUtil securityUtil;
 
     @Override
     @Transactional
     public Transfer createTransfer(Long fromCardId, Long toCardId, BigDecimal amount, Long userId) {
+        // Валидация: текущий пользователь должен совпадать с userId (если не админ)
+        if (!securityUtil.isAdmin()) {
+            Long current = securityUtil.getCurrentUserId();
+            if (current == null || userId == null || !current.equals(userId)) {
+                throw new AccessDeniedException("Доступ запрещён: нельзя инициировать перевод от имени другого пользователя");
+            }
+        }
         // edge case: перевод самому себе
         if (fromCardId.equals(toCardId)) {
             throw new IllegalArgumentException("Нельзя переводить на ту же самую карту");
@@ -42,7 +53,7 @@ public class TransferServiceImpl implements TransferService {
         Card toCard = cardRepository.findById(toCardId)
                 .orElseThrow(() -> new EntityNotFoundException("Destination card not found"));
         // Валидация прав пользователя, статуса карт, баланса
-        if (!fromCard.getUser().getId().equals(userId)) {
+        if (!fromCard.getUser().getId().equals(userId) && !securityUtil.isAdmin()) {
             throw new SecurityException("User does not own the source card");
         }
         if (fromCard.getStatus() != com.example.bankcards.entity.CardStatus.ACTIVE ||

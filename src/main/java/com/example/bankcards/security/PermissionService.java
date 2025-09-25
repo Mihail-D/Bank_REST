@@ -65,4 +65,14 @@ public class PermissionService {
                 .map(u -> username.equals(u.getUsername()))
                 .orElse(false);
     }
+
+    public boolean canViewCard(Long cardId, Long userId, boolean isAdmin) {
+        if (isAdmin) return true;
+        return isCardOwner(cardId, userId);
+    }
+
+    public boolean canModifyCard(Long cardId, Long userId, boolean isAdmin) {
+        if (isAdmin) return true;
+        return isCardOwner(cardId, userId);
+    }
 }
