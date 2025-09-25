@@ -10,28 +10,22 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.Collections;
 import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final String jwtSecret = "yourSecretKeyyourSecretKeyyourSecretKey"; // минимум 32 символа
+    private final String jwtSecret = "yourSecretKeyyourSecretKeyyourSecretKey"; // минимум 32 символа TODO externalize
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         String token = parseJwt(request);
@@ -46,12 +40,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
+                Long userId = null;
+                Object userIdObj = claims.get("userId");
+                if (userIdObj instanceof Number n) {
+                    userId = n.longValue();
+                } else if (userIdObj instanceof String s) {
+                    try { userId = Long.valueOf(s); } catch (NumberFormatException ignored) {}
+                }
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+                    if (role != null && !role.startsWith("ROLE_")) {
+                        role = "ROLE_" + role;
+                    }
+                    List<SimpleGrantedAuthority> authorities = role == null ? List.of() : List.of(new SimpleGrantedAuthority(role));
                     UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(username, null, authorities);
-                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    // Сохраняем расширенный контекст
+                    auth.setDetails(new UserContext(userId, username));
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (Exception e) {

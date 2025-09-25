@@ -58,8 +58,8 @@ class TransferControllerIntegrationTest {
         user.setPassword("pass");
         user.setActive(true);
         user.setRole(Role.USER);
-        user = userRepository.save(user); // Сохраняем пользователя и получаем id
-        jwtToken = jwtService.generateToken(user.getUsername(), user.getRole());
+        user = userRepository.save(user); // persist to get id
+        jwtToken = jwtService.generateToken(user); // новый метод с userId claim
         fromCard = new Card();
         fromCard.setEncryptedNumber("enc1");
         fromCard.setStatus(CardStatus.ACTIVE);
@@ -130,6 +130,6 @@ class TransferControllerIntegrationTest {
                 .header("Authorization", "Bearer " + jwtToken)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().is4xxClientError())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Одна из карт неактивна")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("статус BLOCKED")));
     }
 }

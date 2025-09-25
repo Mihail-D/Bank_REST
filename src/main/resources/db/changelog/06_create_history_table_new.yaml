@@ -2,6 +2,13 @@ databaseChangeLog:
   - changeSet:
       id: 06-create-history-table-new
       author: copilot
+      validCheckSum: 9:7bfb16faf32a3132a2baa4cc62b9c3a4
+      preConditions:
+        onFail: MARK_RAN
+        onError: MARK_RAN
+        not:
+          tableExists:
+            tableName: history
       changes:
         - createTable:
             tableName: history
@@ -20,7 +27,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: event_date
-                  type: DATETIME
+                  type: TIMESTAMP
                   constraints:
                     nullable: false
               - column:
@@ -56,4 +63,3 @@ databaseChangeLog:
             referencedColumnNames: id
             onDelete: SET NULL
             constraintName: fk_history_transfer_id_new
-

@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 07-add-expiration-date-index
+      author: copilot
+      preConditions:
+        onFail: MARK_RAN
+        onError: MARK_RAN
+        not:
+          indexExists:
+            tableName: cards
+            indexName: idx_cards_expiration_date
+      changes:
+        - createIndex:
+            tableName: cards
+            indexName: idx_cards_expiration_date
+            columns:
+              - column:
+                  name: expiration_date

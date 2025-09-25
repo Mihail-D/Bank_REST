@@ -11,6 +11,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class HistoryService {
@@ -34,5 +36,9 @@ public class HistoryService {
             spec = spec.and(HistorySpecification.eventDateBetween(filter.getDateFrom(), filter.getDateTo()));
         }
         return historyRepository.findAll(spec, pageable);
+    }
+
+    public Optional<History> getHistoryById(Long id) {
+        return historyRepository.findById(id);
     }
 }

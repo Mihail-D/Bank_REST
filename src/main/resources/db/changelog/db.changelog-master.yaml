@@ -4,10 +4,16 @@ databaseChangeLog:
   - include:
       file: db/changelog/02_create_cards_table.yaml
   - include:
-      file: db/changelog/03_create_transfers_table.yaml
-  - include:
-      file: db/changelog/04_create_history_table.yaml
+      file: db/changelog/2025-09-24-add-balance-to-cards.xml
   - include:
       file: db/changelog/05_create_transfers_table_new.yaml
   - include:
       file: db/changelog/06_create_history_table_new.yaml
+  - include:
+      file: db/changelog/07_add_expiration_index.yaml
+  - include:
+      file: db/changelog/08_rename_cards_number.yaml
+  - include:
+      file: db/changelog/09_add_active_column_to_users.yaml
+  - include:
+      file: db/changelog/11_modify_encrypted_number_length.yaml

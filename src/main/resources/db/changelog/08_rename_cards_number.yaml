@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 08-rename-cards-number-to-encrypted-number
+      author: copilot
+      preConditions:
+        - columnExists:
+            tableName: cards
+            columnName: number
+      changes:
+        - renameColumn:
+            tableName: cards
+            oldColumnName: number
+            newColumnName: encrypted_number
+            columnDataType: VARCHAR(255)

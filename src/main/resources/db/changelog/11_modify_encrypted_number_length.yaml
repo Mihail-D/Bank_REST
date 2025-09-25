@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 11-modify-encrypted-number-length
+      author: copilot
+      preConditions:
+        onFail: MARK_RAN
+        onError: HALT
+        columnExists:
+          tableName: cards
+          columnName: encrypted_number
+      changes:
+        - modifyDataType:
+            tableName: cards
+            columnName: encrypted_number
+            newDataType: VARCHAR(255)
+

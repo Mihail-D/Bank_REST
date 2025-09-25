@@ -2,6 +2,13 @@ databaseChangeLog:
   - changeSet:
       id: 05-create-transfers-table-new
       author: copilot
+      validCheckSum: 9:224a68f1cd754bdb361b5e8945b53eb0
+      preConditions:
+        onFail: MARK_RAN
+        onError: MARK_RAN
+        not:
+          tableExists:
+            tableName: transfers
       changes:
         - createTable:
             tableName: transfers
@@ -20,7 +27,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: transfer_date
-                  type: DATETIME
+                  type: TIMESTAMP
                   constraints:
                     nullable: false
               - column:
@@ -52,4 +59,3 @@ databaseChangeLog:
             referencedColumnNames: id
             onDelete: CASCADE
             constraintName: fk_transfers_to_card_id
-

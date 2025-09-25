@@ -5,9 +5,10 @@ import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.repository.CardRepository;
+import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.service.CardEncryptionService;
 import com.example.bankcards.service.CardNumberGenerator;
-import com.example.bankcards.specification.CardSpecification;
+import com.example.bankcards.security.SecurityUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +27,8 @@ class CardServiceImplTest {
     private CardRepository cardRepository;
     private CardNumberGenerator cardNumberGenerator;
     private CardEncryptionService cardEncryptionService;
+    private SecurityUtil securityUtil; // новый mock
+    private HistoryRepository historyRepository;
     private CardServiceImpl cardService;
 
     @BeforeEach
@@ -33,7 +36,12 @@ class CardServiceImplTest {
         cardRepository = Mockito.mock(CardRepository.class);
         cardNumberGenerator = Mockito.mock(CardNumberGenerator.class);
         cardEncryptionService = Mockito.mock(CardEncryptionService.class);
-        cardService = new CardServiceImpl(cardRepository, cardNumberGenerator, cardEncryptionService);
+        securityUtil = Mockito.mock(SecurityUtil.class);
+        historyRepository = Mockito.mock(HistoryRepository.class);
+        // Админ = true, чтобы пропустить guard проверки
+        when(securityUtil.isAdmin()).thenReturn(true);
+        when(securityUtil.getCurrentUserId()).thenReturn(1L);
+        cardService = new CardServiceImpl(cardRepository, cardNumberGenerator, cardEncryptionService, securityUtil, historyRepository);
     }
 
     @Test

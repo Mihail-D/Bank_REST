@@ -168,9 +168,11 @@ class AuthControllerTest {
         user.setPassword("encodedPassword");
         user.setRole(Role.USER);
 
-        when(userService.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userService.findByUsername("testuser")).thenReturn(java.util.Optional.of(user));
         when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
+        // Мокаем оба варианта на случай использования legacy или нового метода
         when(jwtService.generateToken("testuser", Role.USER)).thenReturn("jwt-token");
+        when(jwtService.generateToken(any(User.class))).thenReturn("jwt-token");
 
         // Act & Assert
         mockMvc.perform(post("/auth/login")
