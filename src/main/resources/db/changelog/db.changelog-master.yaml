@@ -15,3 +15,5 @@ databaseChangeLog:
       file: db/changelog/08_rename_cards_number.yaml
   - include:
       file: db/changelog/09_add_active_column_to_users.yaml
+  - include:
+      file: db/changelog/11_modify_encrypted_number_length.yaml
