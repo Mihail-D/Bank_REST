@@ -41,6 +41,17 @@
 
 Примечание: матрица соответствует текущей реализации `ErrorHandler`.
 
+## Аутентификация и доступ
+
+- Большинство эндпоинтов защищены JWT Bearer. Добавляйте заголовок:
+  - `Authorization: Bearer <JWT>`
+- Публичные эндпоинты: `/auth/register`, `/auth/login`.
+- Типовые ответы безопасности:
+  - `401 UNAUTHORIZED` (AUTHENTICATION_FAILED) — не передан или недействителен токен.
+  - `403 FORBIDDEN` (ACCESS_DENIED) — нет прав на ресурс/операцию.
+
+Примеры и эталонные ответы 400/401/403/404/409/422/500 вынесены в `components.responses` и доступны в Swagger UI.
+
 ## Примеры
 
 ### 400 BAD_REQUEST (валидация параметров)
@@ -118,5 +129,4 @@
 ## Ссылки
 - Swagger UI: `/swagger-ui/index.html`
 - OpenAPI JSON: `/v3/api-docs`
-- OpenAPI YAML (можно экспортировать из JSON): `/v3/api-docs.yaml`
-
+- OpenAPI YAML (экспорт): `/v3/api-docs.yaml`

@@ -14,6 +14,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
+// OpenAPI
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
+@Tag(name = "Users", description = "Управление пользователями")
+@SecurityRequirement(name = "bearerAuth")
+@ApiResponses({
+        @ApiResponse(ref = "Unauthorized"),
+        @ApiResponse(ref = "Forbidden"),
+        @ApiResponse(ref = "InternalServerError")
+})
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
