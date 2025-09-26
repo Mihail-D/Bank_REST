@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+import com.example.bankcards.exception.EncryptionFailureException;
 
 @Service
 public class CardEncryptionService {
@@ -23,7 +24,7 @@ public class CardEncryptionService {
             byte[] encrypted = cipher.doFinal(cardNumber.getBytes());
             return Base64.getEncoder().encodeToString(encrypted);
         } catch (Exception e) {
-            return null;
+            throw new EncryptionFailureException("Ошибка шифрования номера карты", e);
         }
     }
 
@@ -36,7 +37,7 @@ public class CardEncryptionService {
             byte[] decrypted = cipher.doFinal(decoded);
             return new String(decrypted);
         } catch (Exception e) {
-            return null;
+            throw new EncryptionFailureException("Ошибка дешифрования номера карты", e);
         }
     }
 

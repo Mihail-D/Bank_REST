@@ -22,6 +22,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.example.bankcards.exception.UserNotFoundException;
 
 @RestController
 @RequestMapping("/api/cards")
@@ -44,22 +45,14 @@ public class CardController {
         this.securityUtil = securityUtil;
     }
 
-    // Создание новой карты (оставляем исходную аннотацию безопасности, если потребуется доработаем позже)
+    // Создание новой карты
     @PostMapping("/user/{userId}")
     public ResponseEntity<CardDto> createCard(@PathVariable Long userId) {
-        try {
-            User user = userService.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
-
-            Card card = cardService.createCard(user);
-            CardDto cardDto = cardMapper.toDto(card);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(cardDto);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        Card card = cardService.createCard(user);
+        CardDto cardDto = cardMapper.toDto(card);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cardDto);
     }
 
     // Получение карты по ID с ручной проверкой прав вместо SpEL
@@ -82,37 +75,25 @@ public class CardController {
     // Получение всех карт пользователя
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<CardDto>> getUserCards(@PathVariable Long userId) {
-        try {
-            List<Card> cards = cardService.getCardsByUserId(userId);
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<Card> cards = cardService.getCardsByUserId(userId);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Получение активных карт пользователя
     @GetMapping("/user/{userId}/active")
     public ResponseEntity<List<CardDto>> getActiveUserCards(@PathVariable Long userId) {
-        try {
-            List<Card> cards = cardService.getActiveCardsByUserId(userId);
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<Card> cards = cardService.getActiveCardsByUserId(userId);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Получение карт по статусу
     @GetMapping("/status/{status}")
     public ResponseEntity<List<CardDto>> getCardsByStatus(@PathVariable CardStatus status) {
-        try {
-            List<Card> cards = cardService.getCardsByStatus(status);
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<Card> cards = cardService.getCardsByStatus(status);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Блокировка карты
@@ -123,13 +104,9 @@ public class CardController {
         if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
             throw new AccessDeniedException("Доступ запрещён");
         }
-        try {
-            Card blockedCard = cardService.blockCard(cardId);
-            CardDto cardDto = cardMapper.toDto(blockedCard);
-            return ResponseEntity.ok(cardDto);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        Card blockedCard = cardService.blockCard(cardId);
+        CardDto cardDto = cardMapper.toDto(blockedCard);
+        return ResponseEntity.ok(cardDto);
     }
 
     // Разблокировка карты (только ADMIN)
@@ -152,13 +129,9 @@ public class CardController {
         if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
             throw new AccessDeniedException("Доступ запрещён");
         }
-        try {
-            Card activatedCard = cardService.activateCard(cardId);
-            CardDto cardDto = cardMapper.toDto(activatedCard);
-            return ResponseEntity.ok(cardDto);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        Card activatedCard = cardService.activateCard(cardId);
+        CardDto cardDto = cardMapper.toDto(activatedCard);
+        return ResponseEntity.ok(cardDto);
     }
 
     // Деактивация карты
@@ -202,17 +175,12 @@ public class CardController {
     // Проверка статуса карты
     @GetMapping("/{cardId}/status")
     public ResponseEntity<CardStatusResponse> getCardStatus(@PathVariable Long cardId) {
-        try {
-            boolean isActive = cardService.isCardActive(cardId);
-            boolean isExpired = cardService.isCardExpired(cardId);
-            boolean isBlocked = cardService.isCardBlocked(cardId);
-            boolean canPerformTransaction = cardService.canPerformTransaction(cardId);
-
-            CardStatusResponse status = new CardStatusResponse(isActive, isExpired, isBlocked, canPerformTransaction);
-            return ResponseEntity.ok(status);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        boolean isActive = cardService.isCardActive(cardId);
+        boolean isExpired = cardService.isCardExpired(cardId);
+        boolean isBlocked = cardService.isCardBlocked(cardId);
+        boolean canPerformTransaction = cardService.canPerformTransaction(cardId);
+        CardStatusResponse status = new CardStatusResponse(isActive, isExpired, isBlocked, canPerformTransaction);
+        return ResponseEntity.ok(status);
     }
 
     // Поиск карт с комбинированными фильтрами
@@ -222,54 +190,42 @@ public class CardController {
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String ownerName,
             @RequestParam(required = false) String mask) {
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
-            CardSearchDto searchDto = new CardSearchDto(status, effectiveUserId, ownerName, mask);
-            List<Card> cards = cardService.searchCards(searchDto);
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        boolean isAdmin = securityUtil.isAdmin();
+        Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
+        CardSearchDto searchDto = new CardSearchDto(status, effectiveUserId, ownerName, mask);
+        List<Card> cards = cardService.searchCards(searchDto);
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
         }
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Поиск карт по маске номера
     @GetMapping("/search/mask/{mask}")
     public ResponseEntity<List<CardDto>> searchCardsByMask(@PathVariable String mask) {
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            List<Card> cards = cardService.searchCardsByMask(mask);
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        boolean isAdmin = securityUtil.isAdmin();
+        List<Card> cards = cardService.searchCardsByMask(mask);
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
         }
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Поиск карт по имени владельца
     @GetMapping("/search/owner")
     public ResponseEntity<List<CardDto>> searchCardsByOwnerName(@RequestParam String ownerName) {
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            List<Card> cards = cardService.searchCardsByOwnerName(ownerName);
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        boolean isAdmin = securityUtil.isAdmin();
+        List<Card> cards = cardService.searchCardsByOwnerName(ownerName);
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
         }
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Поиск карт по статусу и владельцу
@@ -277,19 +233,15 @@ public class CardController {
     public ResponseEntity<List<CardDto>> searchCardsByStatusAndOwner(
             @RequestParam(required = false) CardStatus status,
             @RequestParam(required = false) Long userId) {
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
-            List<Card> cards = cardService.searchCardsByStatusAndOwner(status, effectiveUserId);
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        boolean isAdmin = securityUtil.isAdmin();
+        Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
+        List<Card> cards = cardService.searchCardsByStatusAndOwner(status, effectiveUserId);
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
         }
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Получение всех карт с пагинацией
@@ -299,14 +251,10 @@ public class CardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-
-        try {
-            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
-            Page<Card> cardPage = cardService.getAllCardsWithPagination(pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
-            PageResponseDto<CardDto> response = PageResponseDto.of(
+        Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+        Page<Card> cardPage = cardService.getAllCardsWithPagination(pageable);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+        PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
                 cardPage.getSize(),
@@ -314,12 +262,8 @@ public class CardController {
                 cardPage.getTotalPages(),
                 cardPage.isFirst(),
                 cardPage.isLast()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Получение карт пользователя с пагинацией
@@ -330,14 +274,10 @@ public class CardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-
-        try {
-            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
-            Page<Card> cardPage = cardService.getCardsByUserIdWithPagination(userId, pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
-            PageResponseDto<CardDto> response = PageResponseDto.of(
+        Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+        Page<Card> cardPage = cardService.getCardsByUserIdWithPagination(userId, pageable);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+        PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
                 cardPage.getSize(),
@@ -345,12 +285,8 @@ public class CardController {
                 cardPage.getTotalPages(),
                 cardPage.isFirst(),
                 cardPage.isLast()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Получение карт по статусу с пагинацией
@@ -361,14 +297,10 @@ public class CardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-
-        try {
-            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
-            Page<Card> cardPage = cardService.getCardsByStatusWithPagination(status, pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
-            PageResponseDto<CardDto> response = PageResponseDto.of(
+        Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+        Page<Card> cardPage = cardService.getCardsByStatusWithPagination(status, pageable);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+        PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
                 cardPage.getSize(),
@@ -376,40 +308,8 @@ public class CardController {
                 cardPage.getTotalPages(),
                 cardPage.isFirst(),
                 cardPage.isLast()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    // Поиск карт с пагинацией (POST)
-    @PostMapping("/search/paginated")
-    public ResponseEntity<PageResponseDto<CardDto>> searchCardsWithPagination(
-            @Valid @RequestBody CardSearchDto searchDto,
-            @Valid @RequestBody PageRequestDto pageRequest) {
-
-        try {
-            Pageable pageable = PageableUtils.createPageable(pageRequest);
-            Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
-            PageResponseDto<CardDto> response = PageResponseDto.of(
-                cardDtos,
-                cardPage.getNumber(),
-                cardPage.getSize(),
-                cardPage.getTotalElements(),
-                cardPage.getTotalPages(),
-                cardPage.isFirst(),
-                cardPage.isLast()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Поиск карт с пагинацией через GET параметры
@@ -424,25 +324,23 @@ public class CardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
-            CardSearchDto searchDto = new CardSearchDto();
-            searchDto.setStatus(status);
-            searchDto.setUserId(effectiveUserId);
-            searchDto.setOwnerName(ownerName);
-            searchDto.setIsExpired(isExpired);
-            searchDto.setMask(mask);
-            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
-            Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
-            List<Card> content = cardPage.getContent();
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                content = content.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(content);
-            PageResponseDto<CardDto> response = PageResponseDto.of(
+        boolean isAdmin = securityUtil.isAdmin();
+        Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
+        CardSearchDto searchDto = new CardSearchDto();
+        searchDto.setStatus(status);
+        searchDto.setUserId(effectiveUserId);
+        searchDto.setOwnerName(ownerName);
+        searchDto.setIsExpired(isExpired);
+        searchDto.setMask(mask);
+        Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+        Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
+        List<Card> content = cardPage.getContent();
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            content = content.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
+        }
+        List<CardDto> cardDtos = cardMapper.toDtoList(content);
+        PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
                 cardPage.getSize(),
@@ -450,11 +348,8 @@ public class CardController {
                 cardPage.getTotalPages(),
                 cardPage.isFirst(),
                 cardPage.isLast()
-            );
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Вложенный класс для ответа со статусом карты

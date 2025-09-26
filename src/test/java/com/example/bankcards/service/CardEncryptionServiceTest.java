@@ -1,9 +1,8 @@
 package com.example.bankcards.service;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import static org.junit.jupiter.api.Assertions.*;
+import com.example.bankcards.exception.EncryptionFailureException;
 
 class CardEncryptionServiceTest {
     @Test
@@ -27,7 +26,6 @@ class CardEncryptionServiceTest {
     @Test
     void testDecryptInvalid() {
         CardEncryptionService service = new CardEncryptionService("1234567890abcdef");
-        assertNull(service.decrypt("invalid_base64"));
+        assertThrows(EncryptionFailureException.class, () -> service.decrypt("invalid_base64"));
     }
 }
-

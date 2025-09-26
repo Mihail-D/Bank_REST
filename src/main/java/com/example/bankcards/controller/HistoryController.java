@@ -9,12 +9,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.bankcards.security.PermissionService;
 import com.example.bankcards.security.SecurityUtil;
+import org.springframework.security.access.AccessDeniedException;
+import com.example.bankcards.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import org.slf4j.Logger;
@@ -57,17 +58,14 @@ public class HistoryController {
     @GetMapping("/{historyId}")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<History> getHistory(@PathVariable Long historyId, Authentication authentication) {
-        if (authentication == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         boolean isAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         String username = authentication.getName();
         if (!isAdmin && !permissionService.isHistoryOwner(historyId, username)) {
             log.debug("Forbidden access to history {} by user {}", historyId, username);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            throw new AccessDeniedException("Доступ запрещён к истории " + historyId);
         }
-        return historyService.getHistoryById(historyId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        History history = historyService.getHistoryById(historyId)
+                .orElseThrow(() -> new NotFoundException("История с id " + historyId + " не найдена"));
+        return ResponseEntity.ok(history);
     }
 }

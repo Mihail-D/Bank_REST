@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import com.example.bankcards.security.PermissionService;
@@ -22,9 +21,13 @@ import java.util.stream.Collectors;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.service.TransferFilter;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
+import com.example.bankcards.exception.CardNotFoundException;
 
 @RestController
 @RequestMapping("/api/transfers")
+@Validated
 public class TransferController {
     private static final Logger log = LoggerFactory.getLogger(TransferController.class);
     private final TransferService transferService;
@@ -43,20 +46,12 @@ public class TransferController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createTransfer(@RequestParam Long fromCardId,
-                                          @RequestParam Long toCardId,
-                                          @RequestParam BigDecimal amount,
-                                          @RequestParam Long userId) {
-        try {
-            Transfer transfer = transferService.createTransfer(fromCardId, toCardId, amount, userId);
-            return ResponseEntity.ok(TransferMapper.toDto(transfer));
-        } catch (IllegalArgumentException | IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-        }
+    public ResponseEntity<?> createTransfer(@RequestParam @NotNull Long fromCardId,
+                                          @RequestParam @NotNull Long toCardId,
+                                          @RequestParam @NotNull BigDecimal amount,
+                                          @RequestParam @NotNull Long userId) {
+        Transfer transfer = transferService.createTransfer(fromCardId, toCardId, amount, userId);
+        return ResponseEntity.ok(TransferMapper.toDto(transfer));
     }
 
     @GetMapping("/user/{userId}")
@@ -76,7 +71,7 @@ public class TransferController {
     public List<TransferDto> getTransfersByCard(@PathVariable Long cardId) {
         boolean isAdmin = securityUtil.isAdmin();
         Long current = securityUtil.getCurrentUserId();
-        Card card = cardRepository.findById(cardId).orElseThrow(() -> new EntityNotFoundException("Card not found"));
+        Card card = cardRepository.findById(cardId).orElseThrow(() -> new CardNotFoundException("Card not found"));
         if (!isAdmin) {
             if (current == null || !card.getUser().getId().equals(current)) {
                 throw new AccessDeniedException("Доступ запрещён: нельзя просматривать переводы чужой карты");

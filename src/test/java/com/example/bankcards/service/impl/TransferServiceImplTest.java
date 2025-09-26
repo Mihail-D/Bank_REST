@@ -9,12 +9,15 @@ import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.security.SecurityUtil;
-import com.example.bankcards.exception.CardStatusException;
+import com.example.bankcards.exception.CardBlockedException;
+import com.example.bankcards.exception.InsufficientFundsException;
+import com.example.bankcards.exception.SameCardTransferException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -79,7 +82,7 @@ class TransferServiceImplTest {
     void createTransfer_insufficientBalance() {
         when(cardRepository.findById(10L)).thenReturn(Optional.of(fromCard));
         when(cardRepository.findById(20L)).thenReturn(Optional.of(toCard));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(InsufficientFundsException.class, () ->
                 transferService.createTransfer(10L, 20L, new BigDecimal("200.00"), 1L));
     }
 
@@ -88,7 +91,7 @@ class TransferServiceImplTest {
         fromCard.setStatus(CardStatus.BLOCKED);
         when(cardRepository.findById(10L)).thenReturn(Optional.of(fromCard));
         when(cardRepository.findById(20L)).thenReturn(Optional.of(toCard));
-        assertThrows(CardStatusException.class, () ->
+        assertThrows(CardBlockedException.class, () ->
                 transferService.createTransfer(10L, 20L, new BigDecimal("10.00"), 1L));
     }
 
@@ -99,7 +102,7 @@ class TransferServiceImplTest {
         fromCard.setUser(anotherUser);
         when(cardRepository.findById(10L)).thenReturn(Optional.of(fromCard));
         when(cardRepository.findById(20L)).thenReturn(Optional.of(toCard));
-        assertThrows(SecurityException.class, () ->
+        assertThrows(AccessDeniedException.class, () ->
                 transferService.createTransfer(10L, 20L, new BigDecimal("10.00"), 1L));
     }
 
@@ -120,7 +123,7 @@ class TransferServiceImplTest {
 
     @Test
     void createTransfer_sameCard() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(SameCardTransferException.class, () ->
                 transferService.createTransfer(10L, 10L, new BigDecimal("10.00"), 1L));
     }
 

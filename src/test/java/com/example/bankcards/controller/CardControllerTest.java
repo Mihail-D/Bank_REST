@@ -48,6 +48,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(value = CardController.class,
@@ -365,4 +366,41 @@ class CardControllerTest {
         mockMvc.perform(get("/api/cards/" + cardId))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createCard_UserNotFound_returnsErrorResponse() throws Exception {
+        Long userId = 42L;
+        // Пользователь не найден
+        when(userService.findById(userId)).thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(post("/api/cards/user/" + userId))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.path").value("/api/cards/user/" + userId))
+                .andExpect(jsonPath("$.traceId").exists());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void searchCardsByMask_ShouldReturnErrorResponseBody_WhenServiceThrowsRuntimeException() throws Exception {
+        // Given
+        org.mockito.Mockito.when(cardService.searchCardsByMask("1234")).thenThrow(new RuntimeException("Service error"));
+
+        // When & Then
+        mockMvc.perform(get("/api/cards/search/mask/1234").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.path").value("/api/cards/search/mask/1234"))
+                .andExpect(jsonPath("$.traceId").exists());
+    }
+
 }
