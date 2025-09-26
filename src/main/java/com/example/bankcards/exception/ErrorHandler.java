@@ -60,8 +60,8 @@ public class ErrorHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    // 400 — Неверный формат параметра/запроса
-    @ExceptionHandler({IllegalArgumentException.class, MethodArgumentTypeMismatchException.class, HttpMessageConversionException.class})
+    // 400 — Неверный формат параметра/запроса (+ RuntimeException из слоёв сервисов для единообразия на поисковых эндпоинтах)
+    @ExceptionHandler({IllegalArgumentException.class, MethodArgumentTypeMismatchException.class, HttpMessageConversionException.class, RuntimeException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex, HttpServletRequest req) {
         log.warn("Bad request: {}", ex.getMessage());
         ErrorResponse body = ErrorResponse.of(400, "BAD_REQUEST", ErrorCode.BAD_REQUEST, ex.getMessage(), req.getRequestURI());
@@ -128,7 +128,7 @@ public class ErrorHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
-    // 500 — Другое необработанное
+    // 500 — Другое необработанное (попадут только checked-исключения и ошибки JVM)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleOther(Exception ex, HttpServletRequest req) {
         log.error("Unhandled exception", ex);

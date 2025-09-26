@@ -384,4 +384,23 @@ class CardControllerTest {
                 .andExpect(jsonPath("$.path").value("/api/cards/user/" + userId))
                 .andExpect(jsonPath("$.traceId").exists());
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void searchCardsByMask_ShouldReturnErrorResponseBody_WhenServiceThrowsRuntimeException() throws Exception {
+        // Given
+        org.mockito.Mockito.when(cardService.searchCardsByMask("1234")).thenThrow(new RuntimeException("Service error"));
+
+        // When & Then
+        mockMvc.perform(get("/api/cards/search/mask/1234").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.path").value("/api/cards/search/mask/1234"))
+                .andExpect(jsonPath("$.traceId").exists());
+    }
+
 }

@@ -190,54 +190,42 @@ public class CardController {
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String ownerName,
             @RequestParam(required = false) String mask) {
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
-            CardSearchDto searchDto = new CardSearchDto(status, effectiveUserId, ownerName, mask);
-            List<Card> cards = cardService.searchCards(searchDto);
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        boolean isAdmin = securityUtil.isAdmin();
+        Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
+        CardSearchDto searchDto = new CardSearchDto(status, effectiveUserId, ownerName, mask);
+        List<Card> cards = cardService.searchCards(searchDto);
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
         }
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Поиск карт по маске номера
     @GetMapping("/search/mask/{mask}")
     public ResponseEntity<List<CardDto>> searchCardsByMask(@PathVariable String mask) {
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            List<Card> cards = cardService.searchCardsByMask(mask);
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        boolean isAdmin = securityUtil.isAdmin();
+        List<Card> cards = cardService.searchCardsByMask(mask);
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
         }
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Поиск карт по имени владельца
     @GetMapping("/search/owner")
     public ResponseEntity<List<CardDto>> searchCardsByOwnerName(@RequestParam String ownerName) {
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            List<Card> cards = cardService.searchCardsByOwnerName(ownerName);
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        boolean isAdmin = securityUtil.isAdmin();
+        List<Card> cards = cardService.searchCardsByOwnerName(ownerName);
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
         }
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Поиск карт по статусу и владельцу
@@ -245,19 +233,15 @@ public class CardController {
     public ResponseEntity<List<CardDto>> searchCardsByStatusAndOwner(
             @RequestParam(required = false) CardStatus status,
             @RequestParam(required = false) Long userId) {
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
-            List<Card> cards = cardService.searchCardsByStatusAndOwner(status, effectiveUserId);
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        boolean isAdmin = securityUtil.isAdmin();
+        Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
+        List<Card> cards = cardService.searchCardsByStatusAndOwner(status, effectiveUserId);
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            cards = cards.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
         }
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Получение всех карт с пагинацией
@@ -267,14 +251,10 @@ public class CardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-
-        try {
-            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
-            Page<Card> cardPage = cardService.getAllCardsWithPagination(pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
-            PageResponseDto<CardDto> response = PageResponseDto.of(
+        Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+        Page<Card> cardPage = cardService.getAllCardsWithPagination(pageable);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+        PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
                 cardPage.getSize(),
@@ -282,12 +262,8 @@ public class CardController {
                 cardPage.getTotalPages(),
                 cardPage.isFirst(),
                 cardPage.isLast()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Получение карт пользователя с пагинацией
@@ -298,14 +274,10 @@ public class CardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-
-        try {
-            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
-            Page<Card> cardPage = cardService.getCardsByUserIdWithPagination(userId, pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
-            PageResponseDto<CardDto> response = PageResponseDto.of(
+        Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+        Page<Card> cardPage = cardService.getCardsByUserIdWithPagination(userId, pageable);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+        PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
                 cardPage.getSize(),
@@ -313,12 +285,8 @@ public class CardController {
                 cardPage.getTotalPages(),
                 cardPage.isFirst(),
                 cardPage.isLast()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Получение карт по статусу с пагинацией
@@ -329,34 +297,8 @@ public class CardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-
-        try {
-            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
-            Page<Card> cardPage = cardService.getCardsByStatusWithPagination(status, pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
-            PageResponseDto<CardDto> response = PageResponseDto.of(
-                cardDtos,
-                cardPage.getNumber(),
-                cardPage.getSize(),
-                cardPage.getTotalElements(),
-                cardPage.getTotalPages(),
-                cardPage.isFirst(),
-                cardPage.isLast()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    // Поиск карт с пагинацией (POST) — заменено на единый body DTO
-    @PostMapping("/search/paginated")
-    public ResponseEntity<PageResponseDto<CardDto>> searchCardsWithPagination(@Valid @RequestBody CardSearchPageRequest request) {
-        Pageable pageable = PageableUtils.createPageable(request.getPage());
-        Page<Card> cardPage = cardService.searchCardsWithPagination(request.getSearch(), pageable);
+        Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+        Page<Card> cardPage = cardService.getCardsByStatusWithPagination(status, pageable);
         List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
         PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
@@ -382,25 +324,23 @@ public class CardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-
-        try {
-            boolean isAdmin = securityUtil.isAdmin();
-            Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
-            CardSearchDto searchDto = new CardSearchDto();
-            searchDto.setStatus(status);
-            searchDto.setUserId(effectiveUserId);
-            searchDto.setOwnerName(ownerName);
-            searchDto.setIsExpired(isExpired);
-            searchDto.setMask(mask);
-            Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
-            Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
-            List<Card> content = cardPage.getContent();
-            if (!isAdmin) {
-                Long currentId = securityUtil.getCurrentUserId();
-                content = content.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
-            }
-            List<CardDto> cardDtos = cardMapper.toDtoList(content);
-            PageResponseDto<CardDto> response = PageResponseDto.of(
+        boolean isAdmin = securityUtil.isAdmin();
+        Long effectiveUserId = isAdmin ? userId : securityUtil.getCurrentUserId();
+        CardSearchDto searchDto = new CardSearchDto();
+        searchDto.setStatus(status);
+        searchDto.setUserId(effectiveUserId);
+        searchDto.setOwnerName(ownerName);
+        searchDto.setIsExpired(isExpired);
+        searchDto.setMask(mask);
+        Pageable pageable = PageableUtils.createPageable(page, size, sortBy, sortDirection);
+        Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
+        List<Card> content = cardPage.getContent();
+        if (!isAdmin) {
+            Long currentId = securityUtil.getCurrentUserId();
+            content = content.stream().filter(c -> c.getUser() != null && c.getUser().getId() != null && c.getUser().getId().equals(currentId)).toList();
+        }
+        List<CardDto> cardDtos = cardMapper.toDtoList(content);
+        PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
                 cardPage.getSize(),
@@ -408,11 +348,8 @@ public class CardController {
                 cardPage.getTotalPages(),
                 cardPage.isFirst(),
                 cardPage.isLast()
-            );
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Вложенный класс для ответа со статусом карты
