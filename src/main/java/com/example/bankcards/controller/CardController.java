@@ -384,19 +384,13 @@ public class CardController {
         }
     }
 
-    // Поиск карт с пагинацией (POST)
+    // Поиск карт с пагинацией (POST) — заменено на единый body DTO
     @PostMapping("/search/paginated")
-    public ResponseEntity<PageResponseDto<CardDto>> searchCardsWithPagination(
-            @Valid @RequestBody CardSearchDto searchDto,
-            @Valid @RequestBody PageRequestDto pageRequest) {
-
-        try {
-            Pageable pageable = PageableUtils.createPageable(pageRequest);
-            Page<Card> cardPage = cardService.searchCardsWithPagination(searchDto, pageable);
-
-            List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
-
-            PageResponseDto<CardDto> response = PageResponseDto.of(
+    public ResponseEntity<PageResponseDto<CardDto>> searchCardsWithPagination(@Valid @RequestBody CardSearchPageRequest request) {
+        Pageable pageable = PageableUtils.createPageable(request.getPage());
+        Page<Card> cardPage = cardService.searchCardsWithPagination(request.getSearch(), pageable);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cardPage.getContent());
+        PageResponseDto<CardDto> response = PageResponseDto.of(
                 cardDtos,
                 cardPage.getNumber(),
                 cardPage.getSize(),
@@ -404,12 +398,8 @@ public class CardController {
                 cardPage.getTotalPages(),
                 cardPage.isFirst(),
                 cardPage.isLast()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        );
+        return ResponseEntity.ok(response);
     }
 
     // Поиск карт с пагинацией через GET параметры

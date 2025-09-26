@@ -7,6 +7,7 @@ import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.Role;
 import com.example.bankcards.service.UserService;
 import com.example.bankcards.security.JwtService;
+import com.example.bankcards.exception.ErrorHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthController.class)
-@Import(AuthControllerTest.TestSecurityConfig.class)
+@Import({AuthControllerTest.TestSecurityConfig.class, ErrorHandler.class})
 class AuthControllerTest {
 
     @Autowired
@@ -218,5 +219,41 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginValidationErrors() throws Exception {
+        // Пустое тело запроса: оба поля обязательны
+        AuthRequest request = new AuthRequest();
+        request.setUsername("");
+        request.setPassword("");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.validationErrors.username").exists())
+                .andExpect(jsonPath("$.validationErrors.password").exists());
+    }
+
+    @Test
+    void registerValidationErrors() throws Exception {
+        // Некорректный email и пустые поля
+        RegisterRequest request = new RegisterRequest();
+        request.setName("");
+        request.setUsername("ab"); // слишком короткий
+        request.setEmail("not-an-email");
+        request.setPassword("123"); // слишком короткий
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.validationErrors.name").exists())
+                .andExpect(jsonPath("$.validationErrors.username").exists())
+                .andExpect(jsonPath("$.validationErrors.password").exists())
+                .andExpect(jsonPath("$.validationErrors.email").exists());
     }
 }

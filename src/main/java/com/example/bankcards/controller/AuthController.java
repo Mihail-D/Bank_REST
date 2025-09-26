@@ -1,21 +1,18 @@
 package com.example.bankcards.controller;
 
 import com.example.bankcards.dto.AuthRequest;
-import com.example.bankcards.dto.AuthResponse;
 import com.example.bankcards.dto.RegisterRequest;
-import com.example.bankcards.dto.RegistrationRequest;
-import com.example.bankcards.dto.LoginRequest;
-import com.example.bankcards.dto.UserDto;
-import com.example.bankcards.dto.UserMapper;
-import com.example.bankcards.entity.User;
-import com.example.bankcards.entity.Role;
 import com.example.bankcards.service.UserService;
 import com.example.bankcards.security.JwtService;
+import com.example.bankcards.entity.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.BadCredentialsException;
 
 @RestController
 @RequestMapping("/auth")
@@ -23,24 +20,23 @@ public class AuthController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final UserMapper userMapper;
 
     @Autowired
-    public AuthController(UserService userService, PasswordEncoder passwordEncoder, JwtService jwtService, UserMapper userMapper) {
+    public AuthController(UserService userService, PasswordEncoder passwordEncoder, JwtService jwtService, com.example.bankcards.dto.UserMapper userMapper) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.userMapper = userMapper;
+        // userMapper оставлен в сигнатуре конструктора для совместимости конфигураций теста, но не используется здесь напрямую
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
-        if (userService.findByUsername(request.getUsername()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("");
-        }
-        if (userService.findByEmail(request.getEmail()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("");
-        }
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
+        userService.findByUsername(request.getUsername()).ifPresent(u -> {
+            throw new DataIntegrityViolationException("Username already exists");
+        });
+        userService.findByEmail(request.getEmail()).ifPresent(u -> {
+            throw new DataIntegrityViolationException("Email already exists");
+        });
         User user = new User();
         user.setName(request.getName());
         user.setUsername(request.getUsername());
@@ -52,16 +48,16 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest request) {
         return userService.findByUsername(request.getUsername())
                 .map(user -> {
                     if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                        String token = jwtService.generateToken(user); // новый метод с userId
+                        String token = jwtService.generateToken(user);
                         return ResponseEntity.ok(java.util.Collections.singletonMap("token", token));
                     } else {
-                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("");
+                        throw new BadCredentialsException("Invalid username or password");
                     }
                 })
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(""));
+                .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
     }
 }
