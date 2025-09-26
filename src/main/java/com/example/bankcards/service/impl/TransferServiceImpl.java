@@ -5,13 +5,12 @@ import com.example.bankcards.entity.History;
 import com.example.bankcards.entity.Transfer;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.HistoryEventType;
-import com.example.bankcards.exception.CardStatusException;
+import com.example.bankcards.exception.*;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.security.SecurityUtil;
 import com.example.bankcards.service.TransferService;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -46,26 +45,26 @@ public class TransferServiceImpl implements TransferService {
         }
         // edge case: перевод самому себе
         if (fromCardId.equals(toCardId)) {
-            throw new IllegalArgumentException("Нельзя переводить на ту же самую карту");
+            throw new SameCardTransferException("Нельзя переводить на ту же самую карту");
         }
         // edge case: отрицательная или нулевая сумма
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Сумма перевода должна быть положительной");
         }
         Card fromCard = cardRepository.findById(fromCardId)
-                .orElseThrow(() -> new EntityNotFoundException("Source card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Source card not found"));
         Card toCard = cardRepository.findById(toCardId)
-                .orElseThrow(() -> new EntityNotFoundException("Destination card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Destination card not found"));
 
         // Проверка владения исходной картой
         if (!fromCard.getUser().getId().equals(userId) && !securityUtil.isAdmin()) {
-            throw new SecurityException("User does not own the source card");
+            throw new AccessDeniedException("User does not own the source card");
         }
-        validateCardUsable(fromCard, "Исходная карта недоступна для перевода");
-        validateCardUsable(toCard, "Целевая карта недоступна для перевода");
+        validateCardUsable(fromCard, true);
+        validateCardUsable(toCard, false);
 
         if (fromCard.getBalance().compareTo(amount) < 0) {
-            throw new IllegalArgumentException("Недостаточно средств на карте");
+            throw new InsufficientFundsException("Недостаточно средств на карте");
         }
 
         fromCard.setBalance(fromCard.getBalance().subtract(amount));
@@ -92,15 +91,15 @@ public class TransferServiceImpl implements TransferService {
         return savedTransfer;
     }
 
-    private void validateCardUsable(Card card, String baseMsg) {
+    private void validateCardUsable(Card card, boolean isSource) {
         if (card.getStatus() == CardStatus.BLOCKED) {
-            throw new CardStatusException(baseMsg + ": статус BLOCKED");
+            throw new CardBlockedException((isSource ? "Исходная" : "Целевая") + " карта недоступна для перевода: статус BLOCKED");
         }
         if (card.getStatus() == CardStatus.EXPIRED || card.getExpirationDate().isBefore(LocalDate.now())) {
-            throw new CardStatusException(baseMsg + ": карта истекла");
+            throw new CardExpiredException((isSource ? "Исходная" : "Целевая") + " карта недоступна для перевода: карта истекла");
         }
         if (card.getStatus() != CardStatus.ACTIVE) {
-            throw new CardStatusException(baseMsg + ": статус " + card.getStatus());
+            throw new CardInactiveException((isSource ? "Исходная" : "Целевая") + " карта недоступна для перевода: статус " + card.getStatus());
         }
     }
 

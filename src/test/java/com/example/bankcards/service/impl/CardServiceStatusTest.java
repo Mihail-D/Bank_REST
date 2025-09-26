@@ -3,7 +3,8 @@ package com.example.bankcards.service.impl;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
-import com.example.bankcards.exception.CardStatusException;
+import com.example.bankcards.exception.CardExpiredException;
+import com.example.bankcards.exception.CardBlockedException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.security.SecurityUtil;
@@ -64,7 +65,7 @@ class CardServiceStatusTest {
     @Test
     void block_already_blocked_error() {
         card.setStatus(CardStatus.BLOCKED);
-        assertThrows(IllegalStateException.class, () -> service.blockCard(1L));
+        assertThrows(CardBlockedException.class, () -> service.blockCard(1L));
     }
 
     @Test
@@ -87,13 +88,12 @@ class CardServiceStatusTest {
     void unblock_expired_error() {
         card.setStatus(CardStatus.EXPIRED);
         when(securityUtil.isAdmin()).thenReturn(true);
-        assertThrows(CardStatusException.class, () -> service.unblockCard(1L));
+        assertThrows(CardExpiredException.class, () -> service.unblockCard(1L));
     }
 
     @Test
     void block_expired_error() {
         card.setStatus(CardStatus.EXPIRED);
-        assertThrows(CardStatusException.class, () -> service.blockCard(1L));
+        assertThrows(CardExpiredException.class, () -> service.blockCard(1L));
     }
 }
-

@@ -6,7 +6,7 @@ import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.History;
 import com.example.bankcards.entity.HistoryEventType;
-import com.example.bankcards.exception.CardStatusException;
+import com.example.bankcards.exception.*;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.HistoryRepository;
 import com.example.bankcards.service.CardEncryptionService;
@@ -112,13 +112,13 @@ public class CardServiceImpl implements CardService {
     @Override
     public Card blockCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
+                .orElseThrow(() -> new CardNotFoundException("Карта с ID " + cardId + " не найдена"));
         assertCanModify(cardId, card);
         if (card.getStatus() == CardStatus.BLOCKED) {
-            throw new IllegalStateException("Карта уже заблокирована");
+            throw new CardBlockedException("Карта уже заблокирована");
         }
         if (card.getStatus() == CardStatus.EXPIRED) {
-            throw new CardStatusException("Нельзя заблокировать истекшую карту");
+            throw new CardExpiredException("Нельзя заблокировать истекшую карту");
         }
         card.setStatus(CardStatus.BLOCKED);
         Card saved = cardRepository.save(card);
@@ -129,19 +129,19 @@ public class CardServiceImpl implements CardService {
     @Override
     public Card unblockCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
+                .orElseThrow(() -> new CardNotFoundException("Карта с ID " + cardId + " не найдена"));
         // Только админ
         if (!securityUtil.isAdmin()) {
             throw new AccessDeniedException("Доступ запрещён: разблокировка только для ADMIN");
         }
         if (card.getStatus() == CardStatus.EXPIRED) {
-            throw new CardStatusException("Нельзя разблокировать истекшую карту");
+            throw new CardExpiredException("Нельзя разблокировать истекшую карту");
         }
         if (card.getStatus() == CardStatus.ACTIVE) {
-            throw new CardStatusException("Карта уже активна");
+            throw new CardBlockedException("Карта уже активна");
         }
         if (card.getStatus() != CardStatus.BLOCKED) {
-            throw new CardStatusException("Карта не в статусе BLOCKED");
+            throw new CardBlockedException("Карта не в статусе BLOCKED");
         }
         card.setStatus(CardStatus.ACTIVE);
         Card saved = cardRepository.save(card);
@@ -152,10 +152,10 @@ public class CardServiceImpl implements CardService {
     @Override
     public Card activateCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
+                .orElseThrow(() -> new CardNotFoundException("Карта с ID " + cardId + " не найдена"));
         assertCanModify(cardId, card);
         if (isCardExpired(card)) {
-            throw new IllegalStateException("Нельзя активировать просроченную карту");
+            throw new CardExpiredException("Нельзя активировать просроченную карту");
         }
         card.setStatus(CardStatus.ACTIVE);
         Card saved = cardRepository.save(card);
@@ -166,7 +166,7 @@ public class CardServiceImpl implements CardService {
     @Override
     public Card deactivateCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
+                .orElseThrow(() -> new CardNotFoundException("Карта с ID " + cardId + " не найдена"));
         assertCanModify(cardId, card);
         card.setStatus(CardStatus.BLOCKED);
         Card saved = cardRepository.save(card);
@@ -177,7 +177,7 @@ public class CardServiceImpl implements CardService {
     @Override
     public void deleteCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
+                .orElseThrow(() -> new CardNotFoundException("Карта с ID " + cardId + " не найдена"));
         assertCanModify(cardId, card);
         cardRepository.delete(card);
     }
@@ -185,7 +185,7 @@ public class CardServiceImpl implements CardService {
     @Override
     public Card renewCard(Long cardId) {
         Card oldCard = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Карта с ID " + cardId + " не найдена"));
+                .orElseThrow(() -> new CardNotFoundException("Карта с ID " + cardId + " не найдена"));
         assertCanModify(cardId, oldCard);
         Card newCard = createCard(oldCard.getUser());
         oldCard.setStatus(CardStatus.EXPIRED);
