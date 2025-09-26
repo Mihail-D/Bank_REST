@@ -13,7 +13,14 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Auth", description = "Аутентификация и регистрация")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -29,6 +36,14 @@ public class AuthController {
         // userMapper оставлен в сигнатуре конструктора для совместимости конфигураций теста, но не используется здесь напрямую
     }
 
+    @Operation(summary = "Регистрация пользователя", description = "Создаёт нового пользователя", security = {})
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Создано",
+                    content = @Content(mediaType = "text/plain")),
+            @ApiResponse(ref = "BadRequest"),
+            @ApiResponse(ref = "Conflict"),
+            @ApiResponse(ref = "InternalServerError")
+    })
     @PostMapping("/register")
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
         userService.findByUsername(request.getUsername()).ifPresent(u -> {
@@ -47,6 +62,15 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
     }
 
+    @Operation(summary = "Логин", description = "Возвращает JWT токен при корректных учётных данных", security = {})
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Успешная аутентификация",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = com.example.bankcards.dto.AuthResponse.class))),
+            @ApiResponse(ref = "BadRequest"),
+            @ApiResponse(ref = "Unauthorized"),
+            @ApiResponse(ref = "InternalServerError")
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody AuthRequest request) {
         return userService.findByUsername(request.getUsername())

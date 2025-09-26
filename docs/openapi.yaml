@@ -1,233 +1,1518 @@
-openapi: 3.0.3
+openapi: 3.0.1
 info:
   title: Bank Cards API
+  description: "REST API для управления банковскими картами: создание, статусы, по\
+    иск, операции"
   version: 1.0.0
-  description: |
-    API для управления банковскими картами и переводами.
-    Политика шаг B: для переводов возвращаются только исходящие переводы (sourceCard) пользователя / карты.
-    Добавлено управление статусами карт (BLOCKED / EXPIRED) и автоматическое истечение.
 servers:
-  - url: http://localhost:8080
+- url: http://localhost:8081
+  description: Generated server url
+security:
+- bearerAuth: []
+tags:
+- name: Auth
+  description: Аутентификация и регистрация
+- name: Users
+  description: Управление пользователями
+- name: History
+  description: История действий
+- name: Cards
+  description: Операции с банковскими картами
+- name: Transfers
+  description: Операции переводов между картами
 paths:
-  /api/cards/{cardId}/block:
-    put:
-      summary: Заблокировать карту
+  /api/users/{id}:
+    get:
+      tags:
+      - Users
+      operationId: getUserById
       parameters:
-        - in: path
-          name: cardId
-          required: true
-          schema: { type: integer, format: int64 }
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
       responses:
-        '200':
-          description: Карта заблокирована
-        '400':
-          description: Ошибка (уже заблокирована или иная валидация)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '403':
-          description: Нет прав (не владелец и не админ)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '404':
-          description: Карта не найдена
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+    put:
+      tags:
+      - Users
+      operationId: updateUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserDto"
+        required: true
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+    delete:
+      tags:
+      - Users
+      operationId: deleteUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
   /api/cards/{cardId}/unblock:
     put:
-      summary: Разблокировать карту (только ADMIN)
+      tags:
+      - Cards
+      operationId: unblockCard
       parameters:
-        - in: path
-          name: cardId
-          required: true
-          schema: { type: integer, format: int64 }
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
       responses:
-        '200': { description: Карта разблокирована }
-        '403':
-          description: Нет прав (не админ)
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/{cardId}/deactivate:
+    put:
+      tags:
+      - Cards
+      operationId: deactivateCard
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/{cardId}/block:
+    put:
+      tags:
+      - Cards
+      operationId: blockCard
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/{cardId}/activate:
+    put:
+      tags:
+      - Cards
+      operationId: activateCard
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /auth/register:
+    post:
+      tags:
+      - Auth
+      summary: Регистрация пользователя
+      description: Создаёт нового пользователя
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+        required: true
+      responses:
+        "201":
+          description: Создано
+          content:
+            text/plain: {}
+        default:
+          $ref: "#/components/responses/Conflict"
+  /auth/login:
+    post:
+      tags:
+      - Auth
+      summary: Логин
+      description: Возвращает JWT токен при корректных учётных данных
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRequest"
+        required: true
+      responses:
+        default:
+          $ref: "#/components/responses/Unauthorized"
+        "200":
+          description: Успешная аутентификация
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '404':
-          description: Карта не найдена
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '422':
-          description: Неверный статус (EXPIRED / ACTIVE)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+  /api/users:
+    get:
+      tags:
+      - Users
+      operationId: getAllUsers
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - Users
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserDto"
+        required: true
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
   /api/transfers:
     post:
+      tags:
+      - Transfers
       summary: Создать перевод между картами
+      description: Создаёт перевод между своими картами. Пользователь не может переводить
+        от имени другого.
+      operationId: createTransfer
       parameters:
-        - in: query
-          name: fromCardId
-          required: true
-          schema: { type: integer, format: int64 }
-        - in: query
-          name: toCardId
-          required: true
-          schema: { type: integer, format: int64 }
-        - in: query
-          name: amount
-          required: true
-          schema: { type: number, format: decimal }
-        - in: query
-          name: userId
-          required: true
-          schema: { type: integer, format: int64 }
+      - name: fromCardId
+        in: query
+        description: ID исходной карты
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1001
+      - name: toCardId
+        in: query
+        description: ID целевой карты
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1002
+      - name: amount
+        in: query
+        description: Сумма перевода
+        required: true
+        schema:
+          type: number
+        example: 1500.0
+      - name: userId
+        in: query
+        description: ID текущего пользователя
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
       responses:
-        '200':
-          description: Перевод успешно создан
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/TransferDto' }
-        '400':
-          description: Ошибка валидации (некорректные параметры, отрицательная сумма и т.п.)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '403':
-          description: Пользователь не имеет права инициировать перевод от имени другого
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '404':
-          description: Карта не найдена
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '422':
-          description: Карта в статусе BLOCKED или EXPIRED (CARD_STATUS_INVALID)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-  /api/transfers/user/{userId}:
-    get:
-      summary: Получить исходящие переводы указанного пользователя
-      parameters:
-        - in: path
-          name: userId
-          required: true
-          schema: { type: integer, format: int64 }
-      responses:
-        '200':
-          description: Список исходящих переводов пользователя
+        default:
+          $ref: "#/components/responses/Conflict"
+        "200":
+          description: Перевод создан
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: '#/components/schemas/TransferDto' }
-        '403':
-          description: Доступ запрещён для просмотра переводов другого пользователя
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-  /api/transfers/card/{cardId}:
-    get:
-      summary: Получить исходящие переводы по карте
+                $ref: "#/components/schemas/TransferDto"
+              example:
+                id: 42
+                fromCardId: 1001
+                toCardId: 1002
+                amount: 1500.0
+                transferDate: 2025-09-26T12:34:56
+                status: SUCCESS
+      security:
+      - bearerAuth: []
+  /api/cards/{cardId}/renew:
+    post:
+      tags:
+      - Cards
+      operationId: renewCard
       parameters:
-        - in: path
-          name: cardId
-          required: true
-          schema: { type: integer, format: int64 }
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
       responses:
-        '200':
-          description: Список исходящих переводов карты
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/user/{userId}:
+    get:
+      tags:
+      - Cards
+      operationId: getUserCards
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - Cards
+      summary: Создать карту пользователю
+      description: Создаёт новую карту для указанного пользователя
+      operationId: createCard
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "201":
+          description: Создано
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: '#/components/schemas/TransferDto' }
-        '403':
-          description: Доступ запрещён (чужая карта)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '404':
-          description: Карта не найдена
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-  /api/transfers/status/{status}:
-    get:
-      summary: Получить исходящие переводы по статусу (фильтрация по текущему пользователю; админ видит исходящие всех)
-      parameters:
-        - in: path
-          name: status
-          required: true
-          schema: { type: string }
-      responses:
-        '200':
-          description: Список переводов по статусу
+                $ref: "#/components/schemas/CardDto"
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Пользователь не найден
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: '#/components/schemas/TransferDto' }
-  /api/transfers/{transferId}:
-    get:
-      summary: Получить перевод по id
-      parameters:
-        - in: path
-          name: transferId
-          required: true
-          schema: { type: integer, format: int64 }
-      responses:
-        '200':
-          description: Перевод найден
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/TransferDto' }
-        '401':
-          description: Требуется аутентификация
-        '403':
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
           description: Доступ запрещён
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '404':
-          description: Перевод не найден
-components:
-  schemas:
-    TransferDto:
-      type: object
-      properties:
-        id:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+      - bearerAuth: []
+  /api/users/{id}/role:
+    patch:
+      tags:
+      - Users
+      operationId: updateUserRole
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
           type: integer
           format: int64
-        fromCardId:
+      - name: role
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Роль пользователя в системе
+          enum:
+          - USER
+          - ADMIN
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/users/{id}/deactivate:
+    patch:
+      tags:
+      - Users
+      operationId: deactivateUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
           type: integer
           format: int64
-          description: Идентификатор исходной (source) карты
-        toCardId:
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/users/{id}/activate:
+    patch:
+      tags:
+      - Users
+      operationId: activateUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
           type: integer
           format: int64
-          description: Идентификатор целевой (destination) карты
-        amount:
-          type: number
-          format: double
-        transferDate:
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/transfers/{transferId}:
+    get:
+      tags:
+      - Transfers
+      summary: Получить перевод по id
+      operationId: getTransfer
+      parameters:
+      - name: transferId
+        in: path
+        description: ID перевода
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 42
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "200":
+          description: Перевод найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferDto"
+      security:
+      - bearerAuth: []
+  /api/transfers/user/{userId}:
+    get:
+      tags:
+      - Transfers
+      summary: Исходящие переводы пользователя
+      description: Возвращает исходящие переводы указанного пользователя (сам пользователь
+        или админ)
+      operationId: getTransfersByUser
+      parameters:
+      - name: userId
+        in: path
+        description: ID пользователя
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "200":
+          description: Список переводов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferDto"
+      security:
+      - bearerAuth: []
+  /api/transfers/status/{status}:
+    get:
+      tags:
+      - Transfers
+      summary: Переводы по статусу
+      description: Возвращает переводы по статусу. Для админа отображаются только
+        исходящие.
+      operationId: getTransfersByStatus
+      parameters:
+      - name: status
+        in: path
+        description: Статус перевода
+        required: true
+        schema:
+          type: string
+        example: SUCCESS
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "200":
+          description: Список переводов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferDto"
+      security:
+      - bearerAuth: []
+  /api/transfers/card/{cardId}:
+    get:
+      tags:
+      - Transfers
+      summary: Исходящие переводы по карте
+      description: Возвращает исходящие переводы по указанной карте
+      operationId: getTransfersByCard
+      parameters:
+      - name: cardId
+        in: path
+        description: ID карты
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1001
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "200":
+          description: Список переводов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferDto"
+      security:
+      - bearerAuth: []
+  /api/history:
+    get:
+      tags:
+      - History
+      summary: Фильтрация истории
+      description: "Фильтры по пользователю, карте, переводу и интервалу времени"
+      operationId: filterHistory
+      parameters:
+      - name: userId
+        in: query
+        description: ID пользователя
+        required: false
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      - name: cardId
+        in: query
+        description: ID карты
+        required: false
+        schema:
+          type: integer
+          format: int64
+        example: 1001
+      - name: transferId
+        in: query
+        description: ID перевода
+        required: false
+        schema:
+          type: integer
+          format: int64
+        example: 42
+      - name: eventType
+        in: query
+        description: Тип события
+        required: false
+        schema:
+          type: string
+        example: CARD_BLOCKED
+      - name: dateFrom
+        in: query
+        description: Дата с
+        required: false
+        schema:
           type: string
           format: date-time
-        status:
+        example: 2025-09-01T00:00:00
+      - name: dateTo
+        in: query
+        description: Дата по
+        required: false
+        schema:
           type: string
-          description: Статус (например SUCCESS)
+          format: date-time
+        example: 2025-09-30T23:59:59
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "200":
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/History"
+      security:
+      - bearerAuth: []
+  /api/history/{historyId}:
+    get:
+      tags:
+      - History
+      summary: Получить запись истории по id
+      operationId: getHistory
+      parameters:
+      - name: historyId
+        in: path
+        description: ID записи
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 10
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "200":
+          description: Найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/History"
+      security:
+      - bearerAuth: []
+  /api/cards/{cardId}:
+    get:
+      tags:
+      - Cards
+      operationId: getCard
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+    delete:
+      tags:
+      - Cards
+      operationId: deleteCard
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/{cardId}/status:
+    get:
+      tags:
+      - Cards
+      operationId: getCardStatus
+      parameters:
+      - name: cardId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/user/{userId}/paginated:
+    get:
+      tags:
+      - Cards
+      operationId: getUserCardsWithPagination
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      - name: sortBy
+        in: query
+        required: false
+        schema:
+          type: string
+          default: id
+      - name: sortDirection
+        in: query
+        required: false
+        schema:
+          type: string
+          default: asc
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/user/{userId}/active:
+    get:
+      tags:
+      - Cards
+      operationId: getActiveUserCards
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/status/{status}:
+    get:
+      tags:
+      - Cards
+      operationId: getCardsByStatus
+      parameters:
+      - name: status
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Статус банковской карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/status/{status}/paginated:
+    get:
+      tags:
+      - Cards
+      operationId: getCardsByStatusWithPagination
+      parameters:
+      - name: status
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Статус банковской карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      - name: sortBy
+        in: query
+        required: false
+        schema:
+          type: string
+          default: id
+      - name: sortDirection
+        in: query
+        required: false
+        schema:
+          type: string
+          default: asc
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/search:
+    get:
+      tags:
+      - Cards
+      summary: Поиск карт
+      description: "Комбинированный поиск по статусу, пользователю, владельцу и ма\
+        ске номера"
+      operationId: searchCards
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Статус банковской карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+      - name: userId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: ownerName
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: mask
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: ОК
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardDto"
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+      - bearerAuth: []
+  /api/cards/search/paginated:
+    get:
+      tags:
+      - Cards
+      operationId: searchCardsWithPaginationGet
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Статус банковской карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+      - name: userId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: ownerName
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: isExpired
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: mask
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      - name: sortBy
+        in: query
+        required: false
+        schema:
+          type: string
+          default: id
+      - name: sortDirection
+        in: query
+        required: false
+        schema:
+          type: string
+          default: asc
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/search/owner:
+    get:
+      tags:
+      - Cards
+      summary: Поиск по владельцу
+      description: Поиск карт по имени владельца
+      operationId: searchCardsByOwnerName
+      parameters:
+      - name: ownerName
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: ОК
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardDto"
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+      - bearerAuth: []
+  /api/cards/search/mask/{mask}:
+    get:
+      tags:
+      - Cards
+      summary: Поиск по маске
+      description: Поиск карт по маске номера
+      operationId: searchCardsByMask
+      parameters:
+      - name: mask
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: ОК
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardDto"
+        default:
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+      - bearerAuth: []
+  /api/cards/search/filter:
+    get:
+      tags:
+      - Cards
+      operationId: searchCardsByStatusAndOwner
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Статус банковской карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+      - name: userId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+  /api/cards/paginated:
+    get:
+      tags:
+      - Cards
+      operationId: getAllCardsWithPagination
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      - name: sortBy
+        in: query
+        required: false
+        schema:
+          type: string
+          default: id
+      - name: sortDirection
+        in: query
+        required: false
+        schema:
+          type: string
+          default: asc
+      responses:
+        default:
+          $ref: "#/components/responses/Forbidden"
+      security:
+      - bearerAuth: []
+components:
+  schemas:
     ErrorResponse:
       type: object
       properties:
         timestamp:
           type: string
+          description: Метка времени возникновения ошибки
           format: date-time
+          example: 2025-09-26T10:15:30Z
         status:
           type: integer
+          description: HTTP статус
+          format: int32
+          example: 400
         error:
           type: string
+          description: Краткое наименование статуса
+          example: BAD_REQUEST
+        code:
+          type: string
+          description: Код ошибки доменной модели
+          example: VALIDATION_ERROR
+          enum:
+          - BAD_REQUEST
+          - VALIDATION_ERROR
+          - ACCESS_DENIED
+          - AUTHENTICATION_FAILED
+          - NOT_FOUND
+          - DATA_INTEGRITY_VIOLATION
+          - INTERNAL_ERROR
+          - USER_NOT_FOUND
+          - CARD_NOT_FOUND
+          - TRANSFER_NOT_FOUND
+          - INSUFFICIENT_FUNDS
+          - CARD_BLOCKED
+          - CARD_EXPIRED
+          - CARD_INACTIVE
+          - SAME_CARD_TRANSFER
+          - ENCRYPTION_FAILURE
         message:
           type: string
+          description: Человекочитаемое сообщение об ошибке
+          example: Validation failed
         path:
           type: string
+          description: Путь запроса
+          example: /api/cards/search
+        traceId:
+          type: string
+          description: Трассировочный идентификатор запроса
+          example: e7d58f2b-f6a6-4a45-8e95-b3a0e7f2f1a9
+        validationErrors:
+          type: object
+          additionalProperties:
+            type: string
+            description: Ошибки валидации по полям (если применимо)
+          description: Ошибки валидации по полям (если применимо)
+      description: Единый формат ошибки API
+    UserDto:
+      required:
+      - email
+      - name
+      - username
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          maxLength: 100
+          minLength: 2
+          type: string
+        username:
+          maxLength: 50
+          minLength: 3
+          type: string
+        email:
+          maxLength: 100
+          minLength: 0
+          type: string
+        role:
+          type: string
+          description: Роль пользователя в системе
+          enum:
+          - USER
+          - ADMIN
+        active:
+          type: boolean
+    RegisterRequest:
+      required:
+      - email
+      - name
+      - password
+      - username
+      type: object
+      properties:
+        name:
+          maxLength: 100
+          minLength: 0
+          type: string
+          description: Полное имя
+          example: John Doe
+        username:
+          maxLength: 50
+          minLength: 3
+          type: string
+          description: Уникальный логин
+          example: jdoe
+        password:
+          maxLength: 100
+          minLength: 4
+          type: string
+          description: Пароль
+          example: P@ssw0rd
+        email:
+          type: string
+          description: Email
+          example: jdoe@example.com
+        role:
+          type: string
+          description: Роль пользователя в системе
+          example: USER
+          enum:
+          - USER
+          - ADMIN
+      description: Запрос на регистрацию пользователя
+    AuthRequest:
+      required:
+      - password
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+          description: Имя пользователя
+          example: jdoe
+        password:
+          type: string
+          description: Пароль пользователя
+          example: P@ssw0rd
+      description: Запрос на аутентификацию пользователя
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT токен
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      description: Ответ аутентификации с JWT токеном
+    CreateUserDto:
+      required:
+      - email
+      - name
+      - password
+      - role
+      - username
+      type: object
+      properties:
+        name:
+          maxLength: 100
+          minLength: 2
+          type: string
+        username:
+          maxLength: 50
+          minLength: 3
+          type: string
+        email:
+          maxLength: 100
+          minLength: 0
+          type: string
+        role:
+          type: string
+          description: Роль пользователя в системе
+          enum:
+          - USER
+          - ADMIN
+        password:
+          maxLength: 255
+          minLength: 6
+          type: string
+    TransferDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Идентификатор перевода
+          format: int64
+          example: 42
+        fromCardId:
+          type: integer
+          description: ID исходной карты
+          format: int64
+          example: 1001
+        toCardId:
+          type: integer
+          description: ID целевой карты
+          format: int64
+          example: 1002
+        amount:
+          type: number
+          description: Сумма перевода
+          example: 1500.0
+        transferDate:
+          type: string
+          description: Дата и время перевода
+          format: date-time
+        status:
+          type: string
+          description: Статус перевода
+          example: SUCCESS
+      description: Перевод между картами
+    CardDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Идентификатор карты
+          format: int64
+          example: 123
+        maskedNumber:
+          type: string
+          description: Маскированный номер карты
+          example: '**** **** **** 1234'
+        status:
+          type: string
+          description: Статус банковской карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        expirationDate:
+          type: string
+          description: Срок действия (год-месяц-день)
+          format: date
+          example: 2027-09-01
+      description: Банковская карта (представление для клиента)
+    Pageable:
+      type: object
+      properties:
+        page:
+          minimum: 0
+          type: integer
+          format: int32
+        size:
+          minimum: 1
+          type: integer
+          format: int32
+        sort:
+          type: array
+          items:
+            type: string
+    Card:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        encryptedNumber:
+          type: string
+        status:
+          type: string
+          description: Статус банковской карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        expirationDate:
+          type: string
+          format: date
+        balance:
+          type: number
+        user:
+          $ref: "#/components/schemas/User"
+        outgoingTransfers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transfer"
+        incomingTransfers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transfer"
+    History:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        eventType:
+          type: string
+        eventDate:
+          type: string
+          format: date-time
+        description:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+        card:
+          $ref: "#/components/schemas/Card"
+        transfer:
+          $ref: "#/components/schemas/Transfer"
+    Transfer:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        amount:
+          type: number
+        transferDate:
+          type: string
+          format: date-time
+        sourceCard:
+          $ref: "#/components/schemas/Card"
+        destinationCard:
+          $ref: "#/components/schemas/Card"
+        status:
+          type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          description: Роль пользователя в системе
+          enum:
+          - USER
+          - ADMIN
+        active:
+          type: boolean
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+  responses:
+    BadRequest:
+      description: Некорректный запрос
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              summary: Типовой ответ ошибки
+              value:
+                error: BAD_REQUEST
+                message: Validation failed
+                timestamp: 2025-09-26T10:15:30Z
+                path: /api/cards/search
+                validationErrors:
+                  field: must not be null
+                status: 400
+                traceId: e7d58f2b-f6a6-4a45-8e95-b3a0e7f2f1a9
+                code: VALIDATION_ERROR
+    Unauthorized:
+      description: Требуется аутентификация
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              summary: Типовой ответ ошибки
+              value:
+                error: BAD_REQUEST
+                message: Validation failed
+                timestamp: 2025-09-26T10:15:30Z
+                path: /api/cards/search
+                validationErrors:
+                  field: must not be null
+                status: 400
+                traceId: e7d58f2b-f6a6-4a45-8e95-b3a0e7f2f1a9
+                code: VALIDATION_ERROR
+    Forbidden:
+      description: Доступ запрещён
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              summary: Типовой ответ ошибки
+              value:
+                error: BAD_REQUEST
+                message: Validation failed
+                timestamp: 2025-09-26T10:15:30Z
+                path: /api/cards/search
+                validationErrors:
+                  field: must not be null
+                status: 400
+                traceId: e7d58f2b-f6a6-4a45-8e95-b3a0e7f2f1a9
+                code: VALIDATION_ERROR
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              summary: Типовой ответ ошибки
+              value:
+                error: BAD_REQUEST
+                message: Validation failed
+                timestamp: 2025-09-26T10:15:30Z
+                path: /api/cards/search
+                validationErrors:
+                  field: must not be null
+                status: 400
+                traceId: e7d58f2b-f6a6-4a45-8e95-b3a0e7f2f1a9
+                code: VALIDATION_ERROR
+    Conflict:
+      description: Конфликт состояния/бизнес-ошибка
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              summary: Типовой ответ ошибки
+              value:
+                error: BAD_REQUEST
+                message: Validation failed
+                timestamp: 2025-09-26T10:15:30Z
+                path: /api/cards/search
+                validationErrors:
+                  field: must not be null
+                status: 400
+                traceId: e7d58f2b-f6a6-4a45-8e95-b3a0e7f2f1a9
+                code: VALIDATION_ERROR
+    UnprocessableEntity:
+      description: Невалидное состояние ресурса
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              summary: Типовой ответ ошибки
+              value:
+                error: BAD_REQUEST
+                message: Validation failed
+                timestamp: 2025-09-26T10:15:30Z
+                path: /api/cards/search
+                validationErrors:
+                  field: must not be null
+                status: 400
+                traceId: e7d58f2b-f6a6-4a45-8e95-b3a0e7f2f1a9
+                code: VALIDATION_ERROR
+    InternalServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              summary: Типовой ответ ошибки
+              value:
+                error: BAD_REQUEST
+                message: Validation failed
+                timestamp: 2025-09-26T10:15:30Z
+                path: /api/cards/search
+                validationErrors:
+                  field: must not be null
+                status: 400
+                traceId: e7d58f2b-f6a6-4a45-8e95-b3a0e7f2f1a9
+                code: VALIDATION_ERROR
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: "Вставьте JWT токен в формате: Bearer <token>"
+      scheme: bearer
+      bearerFormat: JWT
