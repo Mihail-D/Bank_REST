@@ -22,6 +22,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.example.bankcards.exception.UserNotFoundException;
 
 @RestController
 @RequestMapping("/api/cards")
@@ -44,22 +45,14 @@ public class CardController {
         this.securityUtil = securityUtil;
     }
 
-    // Создание новой карты (оставляем исходную аннотацию безопасности, если потребуется доработаем позже)
+    // Создание новой карты
     @PostMapping("/user/{userId}")
     public ResponseEntity<CardDto> createCard(@PathVariable Long userId) {
-        try {
-            User user = userService.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
-
-            Card card = cardService.createCard(user);
-            CardDto cardDto = cardMapper.toDto(card);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(cardDto);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        Card card = cardService.createCard(user);
+        CardDto cardDto = cardMapper.toDto(card);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cardDto);
     }
 
     // Получение карты по ID с ручной проверкой прав вместо SpEL
@@ -82,37 +75,25 @@ public class CardController {
     // Получение всех карт пользователя
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<CardDto>> getUserCards(@PathVariable Long userId) {
-        try {
-            List<Card> cards = cardService.getCardsByUserId(userId);
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<Card> cards = cardService.getCardsByUserId(userId);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Получение активных карт пользователя
     @GetMapping("/user/{userId}/active")
     public ResponseEntity<List<CardDto>> getActiveUserCards(@PathVariable Long userId) {
-        try {
-            List<Card> cards = cardService.getActiveCardsByUserId(userId);
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<Card> cards = cardService.getActiveCardsByUserId(userId);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Получение карт по статусу
     @GetMapping("/status/{status}")
     public ResponseEntity<List<CardDto>> getCardsByStatus(@PathVariable CardStatus status) {
-        try {
-            List<Card> cards = cardService.getCardsByStatus(status);
-            List<CardDto> cardDtos = cardMapper.toDtoList(cards);
-            return ResponseEntity.ok(cardDtos);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<Card> cards = cardService.getCardsByStatus(status);
+        List<CardDto> cardDtos = cardMapper.toDtoList(cards);
+        return ResponseEntity.ok(cardDtos);
     }
 
     // Блокировка карты
@@ -123,13 +104,9 @@ public class CardController {
         if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
             throw new AccessDeniedException("Доступ запрещён");
         }
-        try {
-            Card blockedCard = cardService.blockCard(cardId);
-            CardDto cardDto = cardMapper.toDto(blockedCard);
-            return ResponseEntity.ok(cardDto);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        Card blockedCard = cardService.blockCard(cardId);
+        CardDto cardDto = cardMapper.toDto(blockedCard);
+        return ResponseEntity.ok(cardDto);
     }
 
     // Разблокировка карты (только ADMIN)
@@ -152,13 +129,9 @@ public class CardController {
         if (!permissionService.canModifyCard(cardId, securityUtil.getCurrentUserId(), securityUtil.isAdmin())) {
             throw new AccessDeniedException("Доступ запрещён");
         }
-        try {
-            Card activatedCard = cardService.activateCard(cardId);
-            CardDto cardDto = cardMapper.toDto(activatedCard);
-            return ResponseEntity.ok(cardDto);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        Card activatedCard = cardService.activateCard(cardId);
+        CardDto cardDto = cardMapper.toDto(activatedCard);
+        return ResponseEntity.ok(cardDto);
     }
 
     // Деактивация карты
@@ -202,17 +175,12 @@ public class CardController {
     // Проверка статуса карты
     @GetMapping("/{cardId}/status")
     public ResponseEntity<CardStatusResponse> getCardStatus(@PathVariable Long cardId) {
-        try {
-            boolean isActive = cardService.isCardActive(cardId);
-            boolean isExpired = cardService.isCardExpired(cardId);
-            boolean isBlocked = cardService.isCardBlocked(cardId);
-            boolean canPerformTransaction = cardService.canPerformTransaction(cardId);
-
-            CardStatusResponse status = new CardStatusResponse(isActive, isExpired, isBlocked, canPerformTransaction);
-            return ResponseEntity.ok(status);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        boolean isActive = cardService.isCardActive(cardId);
+        boolean isExpired = cardService.isCardExpired(cardId);
+        boolean isBlocked = cardService.isCardBlocked(cardId);
+        boolean canPerformTransaction = cardService.canPerformTransaction(cardId);
+        CardStatusResponse status = new CardStatusResponse(isActive, isExpired, isBlocked, canPerformTransaction);
+        return ResponseEntity.ok(status);
     }
 
     // Поиск карт с комбинированными фильтрами
