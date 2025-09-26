@@ -50,7 +50,16 @@ public class SecurityConfig {
                 )
                 .anonymous(anon -> anon.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Swagger/OpenAPI — разрешаем без авторизации
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+                        // Публичные эндпоинты аутентификации
                         .requestMatchers("/auth/**").permitAll()
+                        // Остальное — только для аутентифицированных ролей
                         .anyRequest().hasAnyRole("USER", "ADMIN")
                 )
                 .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
