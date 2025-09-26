@@ -23,9 +23,18 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.bankcards.exception.UserNotFoundException;
+import com.example.bankcards.exception.ErrorResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/cards")
+@Tag(name = "Cards", description = "Операции с банковскими картами")
 public class CardController {
 
     private static final Logger log = LoggerFactory.getLogger(CardController.class);
@@ -46,6 +55,18 @@ public class CardController {
     }
 
     // Создание новой карты
+    @Operation(summary = "Создать карту пользователю", description = "Создаёт новую карту для указанного пользователя")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Создано",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CardDto.class))),
+            @ApiResponse(responseCode = "404", description = "Пользователь не найден",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещён",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PostMapping("/user/{userId}")
     public ResponseEntity<CardDto> createCard(@PathVariable Long userId) {
         User user = userService.findById(userId)
@@ -184,6 +205,15 @@ public class CardController {
     }
 
     // Поиск карт с комбинированными фильтрами
+    @Operation(summary = "Поиск карт", description = "Комбинированный поиск по статусу, пользователю, владельцу и маске номера")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "ОК",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = CardDto.class)))),
+            @ApiResponse(responseCode = "400", description = "Неверный запрос",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/search")
     public ResponseEntity<List<CardDto>> searchCards(
             @RequestParam(required = false) CardStatus status,
@@ -203,6 +233,15 @@ public class CardController {
     }
 
     // Поиск карт по маске номера
+    @Operation(summary = "Поиск по маске", description = "Поиск карт по маске номера")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "ОК",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = CardDto.class)))),
+            @ApiResponse(responseCode = "400", description = "Неверный запрос",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/search/mask/{mask}")
     public ResponseEntity<List<CardDto>> searchCardsByMask(@PathVariable String mask) {
         boolean isAdmin = securityUtil.isAdmin();
@@ -216,6 +255,15 @@ public class CardController {
     }
 
     // Поиск карт по имени владельца
+    @Operation(summary = "Поиск по владельцу", description = "Поиск карт по имени владельца")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "ОК",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = CardDto.class)))),
+            @ApiResponse(responseCode = "400", description = "Неверный запрос",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/search/owner")
     public ResponseEntity<List<CardDto>> searchCardsByOwnerName(@RequestParam String ownerName) {
         boolean isAdmin = securityUtil.isAdmin();
