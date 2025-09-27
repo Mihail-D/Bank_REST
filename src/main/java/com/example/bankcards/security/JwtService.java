@@ -13,8 +13,9 @@ import java.security.Key;
 @Service
 public class JwtService {
 
-    private final String jwtSecret = "yourSecretKeyyourSecretKeyyourSecretKey"; // TODO: вынести в конфиг/Secret Manager
-    private final long jwtExpirationMs = 86400000;
+    // Читаем из переменных окружения с дефолтами для локальной разработки и тестов
+    private final String jwtSecret = System.getenv().getOrDefault("JWT_SECRET", "yourSecretKeyyourSecretKeyyourSecretKey");
+    private final long jwtExpirationMs = Long.parseLong(System.getenv().getOrDefault("JWT_EXPIRATION_MS", "86400000"));
 
     public String generateToken(String username, Role role) { // legacy вариант без userId (оставлен для совместимости тестов/старых вызовов)
         Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));

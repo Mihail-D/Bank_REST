@@ -118,3 +118,57 @@ Authorization: Bearer &lt;JWT&gt;
 <p>
 Весь код и изменения принимаются только через git-репозиторий с открытым доступом к проекту. Отправка файлов в любом виде не принимается.
   </p>
+
+<h2>🚀 Запуск приложения</h2>
+<p>
+    Для локального запуска приложения выполните следующие шаги:
+</p>
+<pre>
+git clone <URL_ВАШЕГО_РЕПОЗИТОРИЯ>
+cd <ИМЯ_КЛОНИРОВАННОЙ_ДИРЕКТОРИИ>
+./mvnw spring-boot:run
+</pre>
+<p>
+  Приложение будет доступно на <code>http://localhost:8080</code>
+</p>
+<h2>## Запуск через Docker Compose</h2>
+
+Требования: Docker Desktop (Windows/macOS) или Docker Engine (Linux) с поддержкой Docker Compose v2.
+
+1) Опционально создайте файл `.env` рядом с `docker-compose.yml` (или используйте дефолтные значения):
+
+<pre>
+POSTGRES_DB=bank_rest
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+SERVER_PORT=8081
+CARD_ENCRYPTION_KEY=1234567890abcdef
+JWT_SECRET=yourSecretKeyyourSecretKeyyourSecretKey
+JWT_EXPIRATION_MS=86400000
+</pre>
+
+2) Соберите и поднимите контейнеры:
+
+<pre>
+- docker compose build
+- docker compose up -d
+</pre>
+
+3) Проверка состояния:
+
+<pre>
+- docker compose ps
+- docker logs -f bank_rest_app
+</pre>
+
+Приложение будет доступно на http://localhost:8081
+
+Swagger UI: http://localhost:8081/swagger-ui/index.html
+OpenAPI JSON: http://localhost:8081/v3/api-docs
+OpenAPI YAML: http://localhost:8081/v3/api-docs.yaml
+
+Остановить и удалить контейнеры:
+
+<pre>
+- docker compose down -v
+</pre>

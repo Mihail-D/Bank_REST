@@ -1,9 +1,46 @@
 # 
 # docker-compose.yml — определяет сервисы для разработки и тестирования.
 
-Что нужно сделать:
-  - Настроить сервисы для:
-      - PostgreSQL (или MySQL) с начальной базой.
-      - Приложения Spring Boot (если нужно).
-  - Открыть нужные порты (например, 5432, 8080).
-  - Настроить volume для хранения данных БД.
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bank_rest_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bank_rest}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    image: bank_rest:dev
+    container_name: bank_rest_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-bank_rest}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      SERVER_PORT: ${SERVER_PORT:-8081}
+      CARD_ENCRYPTION_KEY: ${CARD_ENCRYPTION_KEY:-1234567890abcdef}
+      JWT_SECRET: ${JWT_SECRET:-yourSecretKeyyourSecretKeyyourSecretKey}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    ports:
+      - "8081:8081"
+    # Для ускорения отладки можно пробросить локальные исходники и включить devtools
+    # volumes:
+    #   - ./target:/app
+
+volumes:
+  db-data:
