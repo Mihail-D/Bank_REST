@@ -1,0 +1,11 @@
+# Docker context ignore
+.git
+.gitignore
+.idea
+*.iml
+*.log
+**/target/
+**/.mvn/
+**/node_modules/
+README_Resources.md
+**/.DS_Store

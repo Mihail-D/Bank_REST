@@ -2,9 +2,9 @@
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/bank_rest
-    username: postgres
-    password: password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bank_rest}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
 
   liquibase:
@@ -15,17 +15,12 @@ spring:
       ddl-auto: validate
 
 server:
-  port: 8081
-
-#jwt:
-  #secret: your_jwt_secret
-  #expiration: 3600000 # 1 час в миллисекундах
-
-  #springdoc:
-    #swagger-ui:
-    #enabled: true
-  #path: /swagger-ui.html
+  port: ${SERVER_PORT:8081}
 
 card:
   encryption:
-    key: "1234567890abcdef"
+    # 16/24/32-байтный ключ для AES (по умолчанию 16 символов)
+    key: ${CARD_ENCRYPTION_KEY:1234567890abcdef}
+
+# JWT секрет/время жизни можно переопределить переменными окружения в контейнере.
+# Текущая реализация JwtService использует дефолт, но будет читать JWT_SECRET/JWT_EXPIRATION_MS при их наличии.
