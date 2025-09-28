@@ -8,15 +8,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,11 +27,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class HistoryControllerSecurityTest {
+
+    @TestConfiguration
+    static class MockBeansConfig {
+        @Bean
+        @Primary
+        HistoryService historyService() {
+            return mock(HistoryService.class);
+        }
+
+        @Bean
+        @Primary
+        PermissionService permissionService() {
+            return mock(PermissionService.class);
+        }
+    }
+
     @Autowired
     private MockMvc mockMvc;
-    @MockBean
+
+    @Autowired
     private HistoryService historyService;
-    @MockBean
+
+    @Autowired
     private PermissionService permissionService;
 
     private History testHistory;
