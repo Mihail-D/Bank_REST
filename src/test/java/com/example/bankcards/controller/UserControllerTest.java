@@ -90,7 +90,6 @@ class UserControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void createUserSuccess() throws Exception {
-        // Arrange
         CreateUserDto createDto = CreateUserDto.builder()
                 .name("Admin User")
                 .username("adminuser")
@@ -117,7 +116,6 @@ class UserControllerTest {
         when(userService.save(any(User.class))).thenReturn(user);
         when(userMapper.toDto(any(User.class))).thenReturn(userDto);
 
-        // Act & Assert
         mockMvc.perform(post("/api/users")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -129,7 +127,6 @@ class UserControllerTest {
     @Test
     @WithMockUser(roles = "USER")
     void createUserForbiddenForNonAdmin() throws Exception {
-        // Arrange
         CreateUserDto createDto = CreateUserDto.builder()
                 .name("Test User")
                 .username("testuser")
@@ -156,7 +153,6 @@ class UserControllerTest {
         when(userService.save(any(User.class))).thenReturn(user);
         when(userMapper.toDto(any(User.class))).thenReturn(userDto);
 
-        // Act & Assert
         mockMvc.perform(post("/api/users")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -168,7 +164,6 @@ class UserControllerTest {
     @Test
     @WithMockUser
     void getAllUsers() throws Exception {
-        // Arrange
         User user = new User();
         user.setUsername("user1");
         user.setEmail("user1@mail.com");
@@ -182,7 +177,6 @@ class UserControllerTest {
         when(userService.findAll()).thenReturn(Collections.singletonList(user));
         when(userMapper.toDto(any(User.class))).thenReturn(userDto);
 
-        // Act & Assert
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].username").value("user1"));
@@ -191,7 +185,6 @@ class UserControllerTest {
     @Test
     @WithMockUser
     void getUserByIdSuccess() throws Exception {
-        // Arrange
         User user = new User();
         user.setId(1L);
         user.setUsername("user1");
@@ -206,7 +199,6 @@ class UserControllerTest {
         when(userService.findById(1L)).thenReturn(Optional.of(user));
         when(userMapper.toDto(any(User.class))).thenReturn(userDto);
 
-        // Act & Assert
         mockMvc.perform(get("/api/users/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("user1"));
@@ -215,10 +207,8 @@ class UserControllerTest {
     @Test
     @WithMockUser
     void getUserByIdNotFound() throws Exception {
-        // Arrange
         when(userService.findById(2L)).thenReturn(Optional.empty());
 
-        // Act & Assert
         mockMvc.perform(get("/api/users/2"))
                 .andExpect(status().isNotFound());
     }

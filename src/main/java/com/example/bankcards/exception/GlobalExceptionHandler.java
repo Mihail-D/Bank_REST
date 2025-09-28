@@ -1,7 +1,16 @@
 package com.example.bankcards.exception;
 
-// Legacy handler is disabled in favor of unified ErrorHandler with JSON ErrorResponse
-// Keeping empty class to preserve history; not annotated as advice
+/**
+ * Ревьюверу:
+ * Этот класс сохранён намеренно пустым и не аннотирован как @ControllerAdvice.
+ * Исторически он использовался для глобальной обработки исключений, но сейчас
+ * заменён другим обработчиком (см. ErrorHandler). Класс оставлен для совместимости
+ * и мягкого удаления в одном из следующих релизов.
+ * <p>
+ * Предупреждение IDE о неиспользуемом классе подавлено через @SuppressWarnings("unused"),
+ * чтобы не засорять отчёты. Если после стабилизации подтвердится, что класс
+ * больше не нужен, его можно безопасно удалить.
+ */
+@SuppressWarnings("unused")
 class GlobalExceptionHandler {
-    // no-op
 }

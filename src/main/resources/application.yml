@@ -1,5 +1,3 @@
-# application.yml — главный конфигурационный файл Spring Boot.
-
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bank_rest}
@@ -19,8 +17,4 @@ server:
 
 card:
   encryption:
-    # 16/24/32-байтный ключ для AES (по умолчанию 16 символов)
     key: ${CARD_ENCRYPTION_KEY:1234567890abcdef}
-
-# JWT секрет/время жизни можно переопределить переменными окружения в контейнере.
-# Текущая реализация JwtService использует дефолт, но будет читать JWT_SECRET/JWT_EXPIRATION_MS при их наличии.

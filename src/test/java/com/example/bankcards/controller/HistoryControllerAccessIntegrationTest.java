@@ -38,7 +38,6 @@ class HistoryControllerAccessIntegrationTest {
     private User user2;
     private String tokenUser1;
     private String tokenAdmin;
-    private User admin;
 
     @BeforeEach
     void setUp() {
@@ -65,7 +64,7 @@ class HistoryControllerAccessIntegrationTest {
         user2.setActive(true);
         user2 = userRepository.save(user2);
 
-        admin = new User();
+        User admin = new User();
         admin.setName("Admin");
         admin.setUsername("admin_user_" + suffix);
         admin.setEmail("admin_" + suffix + "@mail.com");
@@ -74,7 +73,6 @@ class HistoryControllerAccessIntegrationTest {
         admin.setActive(true);
         admin = userRepository.save(admin);
 
-        // history entries for user1
         for (int i = 0; i < 3; i++) {
             History h = new History();
             h.setEventType("EVT1");
@@ -83,7 +81,6 @@ class HistoryControllerAccessIntegrationTest {
             h.setUser(user1);
             historyRepository.save(h);
         }
-        // history entries for user2
         for (int i = 0; i < 2; i++) {
             History h = new History();
             h.setEventType("EVT2");
@@ -136,7 +133,6 @@ class HistoryControllerAccessIntegrationTest {
                 .header("Authorization", "Bearer " + tokenAdmin)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                // total 5 entries
                 .andExpect(jsonPath("$.content.length()", is(5)));
     }
 }
