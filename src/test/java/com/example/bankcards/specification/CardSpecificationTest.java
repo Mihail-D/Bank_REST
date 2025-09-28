@@ -2,7 +2,6 @@ package com.example.bankcards.specification;
 
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.CardStatus;
-import com.example.bankcards.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.domain.Specification;
@@ -13,7 +12,6 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Expression;
-import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -24,20 +22,19 @@ class CardSpecificationTest {
     private CriteriaQuery<?> query;
     private CriteriaBuilder criteriaBuilder;
     private Path<Object> statusPath;
-    private Path<Object> userPath;
     private Path<Object> userIdPath;
     private Path<String> namePath;
     private Path<String> usernamePath;
     private Path<String> emailPath;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     void setUp() {
         root = mock(Root.class);
         query = mock(CriteriaQuery.class);
         criteriaBuilder = mock(CriteriaBuilder.class);
         statusPath = mock(Path.class);
-        userPath = mock(Path.class);
+        Path<Object> userPath = mock(Path.class); // local instead of field
         userIdPath = mock(Path.class);
         namePath = (Path<String>) mock(Path.class);
         usernamePath = (Path<String>) mock(Path.class);
@@ -130,6 +127,7 @@ class CardSpecificationTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void hasOwnerNameShouldReturnLikePredicateWhenNameProvided() {
         String ownerName = "Иван";
         Predicate expectedPredicate = mock(Predicate.class);
@@ -185,7 +183,8 @@ class CardSpecificationTest {
 
         assertNotNull(spec);
 
-        Predicate result = spec.toPredicate(root, query, criteriaBuilder);
+        // Call to trigger predicate creation; result not used directly
+        spec.toPredicate(root, query, criteriaBuilder);
 
         verify(criteriaBuilder).equal(userIdPath, userId);
         verify(criteriaBuilder).equal(statusPath, CardStatus.ACTIVE);
