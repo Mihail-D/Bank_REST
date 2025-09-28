@@ -22,7 +22,7 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final String jwtSecret = "yourSecretKeyyourSecretKeyyourSecretKey"; // минимум 32 символа TODO externalize
+    private final String jwtSecret = "yourSecretKeyyourSecretKeyyourSecretKey";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

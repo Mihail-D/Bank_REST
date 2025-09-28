@@ -53,15 +53,12 @@ class CardSpecificationTest {
 
     @Test
     void hasStatusShouldReturnConjunctionWhenStatusIsNull() {
-        // Given
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.conjunction()).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.hasStatus(null);
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).conjunction();
         verify(criteriaBuilder, never()).equal(any(), any());
@@ -69,16 +66,13 @@ class CardSpecificationTest {
 
     @Test
     void hasStatusShouldReturnEqualPredicateWhenStatusProvided() {
-        // Given
         CardStatus status = CardStatus.ACTIVE;
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.equal(statusPath, status)).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.hasStatus(status);
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).equal(statusPath, status);
         verify(criteriaBuilder, never()).conjunction();
@@ -86,15 +80,12 @@ class CardSpecificationTest {
 
     @Test
     void hasOwnerShouldReturnConjunctionWhenUserIdIsNull() {
-        // Given
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.conjunction()).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.hasOwner(null);
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).conjunction();
         verify(criteriaBuilder, never()).equal(any(), any());
@@ -102,16 +93,13 @@ class CardSpecificationTest {
 
     @Test
     void hasOwnerShouldReturnEqualPredicateWhenUserIdProvided() {
-        // Given
         Long userId = 1L;
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.equal(userIdPath, userId)).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.hasOwner(userId);
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).equal(userIdPath, userId);
         verify(criteriaBuilder, never()).conjunction();
@@ -119,41 +107,33 @@ class CardSpecificationTest {
 
     @Test
     void hasOwnerNameShouldReturnConjunctionWhenNameIsNull() {
-        // Given
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.conjunction()).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.hasOwnerName(null);
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).conjunction();
     }
 
     @Test
     void hasOwnerNameShouldReturnConjunctionWhenNameIsEmpty() {
-        // Given
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.conjunction()).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.hasOwnerName("   ");
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).conjunction();
     }
 
     @Test
     void hasOwnerNameShouldReturnLikePredicateWhenNameProvided() {
-        // Given
         String ownerName = "Иван";
         Predicate expectedPredicate = mock(Predicate.class);
 
-        // Настраиваем моки для OR условия
         Expression<String> nameLower = mock(Expression.class);
         Expression<String> usernameLower = mock(Expression.class);
         Expression<String> emailLower = mock(Expression.class);
@@ -172,11 +152,9 @@ class CardSpecificationTest {
 
         when(criteriaBuilder.or(namePredicate, usernamePredicate, emailPredicate)).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.hasOwnerName(ownerName);
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).lower(namePath);
         verify(criteriaBuilder).lower(usernamePath);
@@ -189,65 +167,50 @@ class CardSpecificationTest {
 
     @Test
     void hasMaskShouldAlwaysReturnConjunction() {
-        // Given
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.conjunction()).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.hasMask("1234");
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).conjunction();
     }
 
     @Test
     void activeCardsOfUserShouldCombineOwnerAndStatusSpecs() {
-        // Given
         Long userId = 1L;
 
-        // When
         Specification<Card> spec = CardSpecification.activeCardsOfUser(userId);
 
-        // Then
         assertNotNull(spec);
 
-        // Проверяем, что спецификация корректно создана
-        // (более детальное тестирование требует более сложной настройки моков)
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Проверяем, что были вызваны нужные методы
         verify(criteriaBuilder).equal(userIdPath, userId);
         verify(criteriaBuilder).equal(statusPath, CardStatus.ACTIVE);
     }
 
     @Test
     void blockedCardsShouldUseBlockedStatus() {
-        // Given
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.equal(statusPath, CardStatus.BLOCKED)).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.blockedCards();
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).equal(statusPath, CardStatus.BLOCKED);
     }
 
     @Test
     void expiredCardsShouldUseExpiredStatus() {
-        // Given
         Predicate expectedPredicate = mock(Predicate.class);
         when(criteriaBuilder.equal(statusPath, CardStatus.EXPIRED)).thenReturn(expectedPredicate);
 
-        // When
         Specification<Card> spec = CardSpecification.expiredCards();
         Predicate result = spec.toPredicate(root, query, criteriaBuilder);
 
-        // Then
         assertEquals(expectedPredicate, result);
         verify(criteriaBuilder).equal(statusPath, CardStatus.EXPIRED);
     }

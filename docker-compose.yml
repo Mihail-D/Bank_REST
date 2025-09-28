@@ -1,6 +1,3 @@
-# 
-# docker-compose.yml — определяет сервисы для разработки и тестирования.
-
 version: "3.9"
 
 services:
@@ -38,9 +35,6 @@ services:
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
     ports:
       - "8081:8081"
-    # Для ускорения отладки можно пробросить локальные исходники и включить devtools
-    # volumes:
-    #   - ./target:/app
 
 volumes:
   db-data:
