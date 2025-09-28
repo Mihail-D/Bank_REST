@@ -34,7 +34,7 @@ class CardSpecificationTest {
         query = mock(CriteriaQuery.class);
         criteriaBuilder = mock(CriteriaBuilder.class);
         statusPath = mock(Path.class);
-        Path<Object> userPath = mock(Path.class); // local instead of field
+        Path<Object> userPath = mock(Path.class);
         userIdPath = mock(Path.class);
         namePath = (Path<String>) mock(Path.class);
         usernamePath = (Path<String>) mock(Path.class);
@@ -183,7 +183,6 @@ class CardSpecificationTest {
 
         assertNotNull(spec);
 
-        // Call to trigger predicate creation; result not used directly
         spec.toPredicate(root, query, criteriaBuilder);
 
         verify(criteriaBuilder).equal(userIdPath, userId);
