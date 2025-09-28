@@ -38,7 +38,6 @@ class HistoryControllerAccessIntegrationTest {
     private User user2;
     private String tokenUser1;
     private String tokenAdmin;
-    private User admin;
 
     @BeforeEach
     void setUp() {
@@ -65,7 +64,7 @@ class HistoryControllerAccessIntegrationTest {
         user2.setActive(true);
         user2 = userRepository.save(user2);
 
-        admin = new User();
+        User admin = new User();
         admin.setName("Admin");
         admin.setUsername("admin_user_" + suffix);
         admin.setEmail("admin_" + suffix + "@mail.com");

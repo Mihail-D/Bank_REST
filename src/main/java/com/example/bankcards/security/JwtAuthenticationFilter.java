@@ -22,8 +22,6 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final String jwtSecret = "yourSecretKeyyourSecretKeyyourSecretKey";
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -31,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = parseJwt(request);
         if (token != null) {
             try {
+                String jwtSecret = "yourSecretKeyyourSecretKeyyourSecretKey";
                 Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
                 Claims claims = Jwts.parserBuilder()
                         .setSigningKey(key)
